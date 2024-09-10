@@ -2,8 +2,9 @@ import requests
 import os
 from bs4 import BeautifulSoup
 import pandas as pd
+from io import StringIO
 
-def get(LAWD_CD: int, DEAL_YMD: int, pageNo:int, numOfRows: int, serviceKey: str = None):
+def get_api_data(LAWD_CD: int, DEAL_YMD: int, pageNo:int, numOfRows: int, serviceKey: str = None):
     """ 공공데이터에서 Request 함수처리
 
     Args:
@@ -14,7 +15,7 @@ def get(LAWD_CD: int, DEAL_YMD: int, pageNo:int, numOfRows: int, serviceKey: str
         numOfRows: Row 수
     """
     if not serviceKey:
-        serviceKey = os.environ("PUBLIC_DATA_API_KEY")
+        serviceKey = os.environ["PUBLIC_DATA_API_KEY"]
 
     url = "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
     url = url + f"?serviceKey={serviceKey}&{LAWD_CD=}&{DEAL_YMD=}&{pageNo=}&{numOfRows=}"
@@ -29,7 +30,7 @@ def parse_xml(response):
         response: Reponse받은 텍스트값. response.text
     """
     soup = BeautifulSoup(response, "xml")
-    return pd.read_xml(str(soup.items))
+    return pd.read_xml(StringIO(soup.items.decode()))
 
 def get_lawd_cd(path: str = "LAWD_CD.txt"):
     """ 법정동코드를 다운받아서 서울특별시 코드 5자리만 파싱
