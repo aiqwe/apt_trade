@@ -4,21 +4,29 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from io import StringIO
 
-def get_api_data(LAWD_CD: int, DEAL_YMD: int, pageNo:int, numOfRows: int, serviceKey: str = None):
+BASE_URL = {
+    "apt_trade": "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+}
+
+def get_api_data(base_url: str = None, serviceKey: str = None, **params):
     """ 공공데이터에서 Request 함수처리
 
     Args:
         serviceKey: 발급받은 인증키
-        LAWD_CD: 법정동코드
-        DEAL_YMD: 거래 연월 YYYYMM
-        pageNo: 페이지 수
-        numOfRows: Row 수
+        base_url: API의 엔트리포인트 URL
+        params:
+            LAWD_CD: 법정동코드
+            DEAL_YMD: 거래 연월 YYYYMM
+            pageNo: 페이지 수
+            numOfRows: Row 수
     """
     if not serviceKey:
         serviceKey = os.environ["PUBLIC_DATA_API_KEY"]
 
-    url = "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
-    url = url + f"?serviceKey={serviceKey}&{LAWD_CD=}&{DEAL_YMD=}&{pageNo=}&{numOfRows=}"
+    if params:
+        url = base_url + f"?serviceKey={serviceKey}&" + f"&".join(f"{k}={v}" for k, v in params.items())
+    else:
+        url = base_url + f"?serviceKey={serviceKey}"
 
     response = requests.get(url)
     return response
