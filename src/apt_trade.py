@@ -12,6 +12,12 @@ from utils import get_api_data, get_lawd_cd, parse_xml, BASE_URL
 
 
 def _sub_task(lawd_cd, deal_ymd):
+    # API Parameters
+    # ServiceKey
+    # LAWD_CD
+    # DEAL_YMD
+    # pageNo
+    # numOfRows
     sentinel = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=1, numOfRows=1)
     soup = BeautifulSoup(sentinel.text, 'xml')
     total_cnt = int(soup.totalCount.get_text())  # 전체 건수
@@ -21,9 +27,9 @@ def _sub_task(lawd_cd, deal_ymd):
         for i in range(1, iteration + 1):
             response = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=i, numOfRows=1000)
             if i == 1:
-                result_df = parse_xml(response.text)
+                result_df = parse_xml(response.text, 'items')
             else:
-                result_df = pd.concat([result_df, parse_xml(response.text)])
+                result_df = pd.concat([result_df, parse_xml(response.text, 'items')])
     else:
         result_df = None
 
@@ -40,7 +46,7 @@ def main_task(month: int, date_id: str):
     Returns:
 
     """
-    logger.info(f"{month} Task Start")
+    logger.info(f"{date_id} - {month} Task Start")
 
     lawd_cd_list = get_lawd_cd()
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as p:
@@ -49,9 +55,10 @@ def main_task(month: int, date_id: str):
     concat = pd.concat(result)
     concat['date_id'] = date_id
 
-    logger.info(f"Save the data")
-    os.makedirs(f"./data/{date_id}", exist_ok=True)
-    concat.to_csv(f"./data/{date_id}/{month}.csv", index=False)
+    current_path = os.path.dirname(__file__)
+    os.makedirs(f"{current_path}/data/{date_id}", exist_ok=True)
+    concat.to_csv(f"{current_path}/data/{date_id}/{month}.csv", index=False)
+    logger.info(f"Save the data in '{current_path}/data/{date_id}/{month}.csv'")
 
 
 def run():
