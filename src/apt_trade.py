@@ -70,4 +70,7 @@ def run():
     main_task(last_month, date_id)
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except Exception as e:
+        logger.error(e)

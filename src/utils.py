@@ -7,8 +7,8 @@ from fsspec.implementations.local import LocalFileSystem
 from dotenv import load_dotenv
 
 BASE_URL = {
-    "apt_trade": "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
-    "lawd_cd": "https://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList"
+    "apt_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+    "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList"
 }
 
 def get_api_data(base_url: str = None, serviceKey: str = None, **params):

@@ -23,4 +23,4 @@
 # m h  dom mon dow   command
 
 
-# 0 1 * * * {path}/apt_trade/src/apt_trade.py &> {log_path}/log
+# 0 1 * * * {path}/apt_trade/src/apt_trade.py >> {log_path}/log 2>&1
