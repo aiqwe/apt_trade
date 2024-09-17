@@ -84,4 +84,3 @@ def find_file(fname: str, start_path: str = None):
         if fname in file_list:
             path = os.path.join(current_path, fname)
     return path
-

@@ -69,6 +69,5 @@ def run():
     main_task(this_month, date_id)
     main_task(last_month, date_id)
 
-
 if __name__ == '__main__':
     run()
