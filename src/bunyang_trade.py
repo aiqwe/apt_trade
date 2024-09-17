@@ -18,14 +18,14 @@ def _sub_task(lawd_cd, deal_ymd):
     # DEAL_YMD
     # pageNo
     # numOfRows
-    sentinel = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=1, numOfRows=1)
+    sentinel = get_api_data(base_url=BASE_URL['bunyang_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd)
     soup = BeautifulSoup(sentinel.text, 'xml')
     total_cnt = int(soup.totalCount.get_text())  # 전체 건수
     iteration = (total_cnt // 1000) + 1  # 1000 row마다 request할 때 iteration 수
 
     if total_cnt > 0:
         for i in range(1, iteration + 1):
-            response = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=i, numOfRows=1000)
+            response = get_api_data(base_url=BASE_URL['bunyang_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=i, numOfRows=1000)
             if i == 1:
                 result_df = parse_xml(response.text, 'items')
             else:
@@ -57,8 +57,8 @@ def main_task(month: int, date_id: str):
 
     current_path = os.path.dirname(__file__)
     os.makedirs(f"{current_path}/data/{date_id}", exist_ok=True)
-    concat.to_csv(f"{current_path}/data/{date_id}/{month}_apt.csv", index=False)
-    logger.info(f"Save the data in '{current_path}/data/{date_id}/{month}_apt.csv'")
+    concat.to_csv(f"{current_path}/data/{date_id}/{month}_bunyang.csv", index=False)
+    logger.info(f"Save the data in '{current_path}/data/{date_id}/{month}_bunyang.csv'")
 
 
 def run():
