@@ -95,7 +95,7 @@ def find_file(fname: str, start_path: str = None):
         if fname in file_list:
             paths.append(os.path.join(current_path, fname))
     if not paths:
-        raise FileExistsError("file doesn't exists.")
+        raise FileExistsError(f"'{fname}' file doesn't exists.")
     if len(paths) == 1:
         return paths[0]
     if len(paths) > 1:
