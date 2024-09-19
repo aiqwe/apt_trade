@@ -11,6 +11,13 @@ BASE_URL = {
     "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
 }
 
+def load_env(key: str, fname=".env"):
+    env_path = find_file(".env")
+    env = os.getenv(key, load_dotenv(env_path))
+    if not env:
+        raise ValueError(f"cant find env variable '{key}'")
+    return env
+
 def get_api_data(base_url: str = None, serviceKey: str = None, **params):
     """ 공공데이터에서 Request 함수처리
 
@@ -24,8 +31,7 @@ def get_api_data(base_url: str = None, serviceKey: str = None, **params):
             numOfRows: Row 수
     """
     if not serviceKey:
-        env_path = find_file(".env")
-        serviceKey = os.getenv("PUBLIC_DATA_API_KEY", load_dotenv(env_path))
+        serviceKey = load_env(".env", "PUBLIC_DATA_API_KEY")
 
     if params:
         url = base_url + f"?serviceKey={serviceKey}&" + f"&".join(f"{k}={v}" for k, v in params.items())

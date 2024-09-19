@@ -4,3 +4,4 @@ loguru
 dateutil
 tqdm
 dotenv
+slack_sdk
