@@ -4,12 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from io import StringIO
 from dotenv import load_dotenv
-
-BASE_URL = {
-    "apt_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
-    "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
-    "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
-}
+from .config import PathDictionary
 
 def load_env(key: str, fname=".env"):
     env_path = find_file(".env")
@@ -31,7 +26,12 @@ def get_api_data(base_url: str = None, serviceKey: str = None, **params):
             numOfRows: Row 수
     """
     if not serviceKey:
+<<<<<<< HEAD:src/utils.py
         serviceKey = load_env(".env", "PUBLIC_DATA_API_KEY")
+=======
+        env_path = find_file(".env", start_path=PathDictionary.root)
+        serviceKey = os.getenv("PUBLIC_DATA_API_KEY", load_dotenv(env_path))
+>>>>>>> 99cc88d615249237608d28abb1a15fd13e77b561:src/utils/utils.py
 
     if params:
         url = base_url + f"?serviceKey={serviceKey}&" + f"&".join(f"{k}={v}" for k, v in params.items())
@@ -41,7 +41,7 @@ def get_api_data(base_url: str = None, serviceKey: str = None, **params):
     response = requests.get(url)
     return response
 
-def parse_xml(response, tag):
+def parse_xml(response: str, tag):
     """ xml 데이터를 파싱해서 Pandas DataFrame으로 반환
 
     Args:
@@ -52,8 +52,8 @@ def parse_xml(response, tag):
     data = soup.findAll(tag)[0].decode()
     return pd.read_xml(StringIO(data))
 
-def parse_dict(data):
-    """
+def parse_dict(data: dict):
+    """ dictionary 타입의 데이터를 pandas DataFrame으로 변환
 
     Args:
         data: 변환하려는 dict값
@@ -67,6 +67,7 @@ def get_lawd_cd(fname: str = "lawd_cd.csv"):
 
     Args:
         path: 법정동 코드 파일의 path
+    Returns: [시군구명, 법정동코드 5자리]로 파싱된 Pandas DataFrame
     """
     path = find_file(fname)
 
@@ -77,16 +78,36 @@ def get_lawd_cd(fname: str = "lawd_cd.csv"):
     # 도 레벨(서울특별시) 코드 제거
     df = df[df['sgg_cd'] != '000']
 
-    return df['region_cd'].str[:5].to_list()
+    # API에 넣을 법정동 코드 파싱하여, 시군구명과 함께 저장
+    df['lawd_cd'] = df['region_cd'].str[:5]
+    df = df[['locallow_nm', 'lawd_cd']]
+    df.columns = ['sgg_nm', 'lawd_cd']
+
+    return df
 
 def find_file(fname: str, start_path: str = None):
+    """ fname으로 된 파일을 star_path가 None일 경우, apt_trade/ 부터 재귀적으로 검색합니다.
+    가장 최근에 검색된 fname 1개만을 리턴합니다.
+
+    Args:
+        fname: 찾을 파일명(확장자 포함)
+        start_path: 검색을 시작할 최상위 폴더 트리
+
+    Returns: 검색된 파일의 abspath
+
+    """
     if not start_path:
-        # root = apt_trade
-        start_path = os.path.dirname(os.path.dirname(__file__))
+        start_path = PathDictionary.root # root = apt_trade
     if not os.path.exists(start_path):
         raise ValueError(f"{start_path} does not exists.")
 
+    paths = []
     for current_path, _, file_list in os.walk(start_path):
         if fname in file_list:
-            path = os.path.join(current_path, fname)
-    return path
+            paths.append(os.path.join(current_path, fname))
+    if not paths:
+        raise FileExistsError(f"'{fname}' file doesn't exists.")
+    if len(paths) == 1:
+        return paths[0]
+    if len(paths) > 1:
+        return paths

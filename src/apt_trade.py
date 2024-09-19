@@ -3,12 +3,15 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
 from loguru import logger
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 
-from utils import get_api_data, get_lawd_cd, parse_xml, BASE_URL
+from utils.utils import get_api_data, get_lawd_cd, parse_xml
+from utils.config import ColumnDictionary, PathDictionary, URLDictionary
+from utils.processing import convert_column, delete_latest_history, merge_dataframe
 
 
 def _sub_task(lawd_cd, deal_ymd):
@@ -18,14 +21,14 @@ def _sub_task(lawd_cd, deal_ymd):
     # DEAL_YMD
     # pageNo
     # numOfRows
-    sentinel = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=1, numOfRows=1)
+    sentinel = get_api_data(base_url=URLDictionary.URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=1, numOfRows=1)
     soup = BeautifulSoup(sentinel.text, 'xml')
     total_cnt = int(soup.totalCount.get_text())  # 전체 건수
     iteration = (total_cnt // 1000) + 1  # 1000 row마다 request할 때 iteration 수
 
     if total_cnt > 0:
         for i in range(1, iteration + 1):
-            response = get_api_data(base_url=BASE_URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=i, numOfRows=1000)
+            response = get_api_data(base_url=URLDictionary.URL['apt_trade'], LAWD_CD=lawd_cd, DEAL_YMD=deal_ymd, pageNo=i, numOfRows=1000)
             if i == 1:
                 result_df = parse_xml(response.text, 'items')
             else:
@@ -46,21 +49,33 @@ def main_task(month: int, date_id: str):
     Returns:
 
     """
-    logger.info(f"{date_id} - {month} Task Start")
+    logger.info(f"Trade: {date_id} - {month} Task Start")
 
-    lawd_cd_list = get_lawd_cd()
+    lawd_cd_list = get_lawd_cd()['lawd_cd'].to_list()
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as p:
         result = list(tqdm(p.map(partial(_sub_task, deal_ymd=month), lawd_cd_list), total=len(lawd_cd_list)))
     result = [ele for ele in result if ele is not None]
     concat = pd.concat(result)
     concat['date_id'] = date_id
 
-    current_path = os.path.dirname(__file__)
-    os.makedirs(f"{current_path}/data/{date_id}", exist_ok=True)
-    concat.to_csv(f"{current_path}/data/{date_id}/{month}_apt.csv", index=False)
-    logger.info(f"Save the data in '{current_path}/data/{date_id}/{month}_apt.csv'")
+    concat["ownershipGbn"] = " "
+    concat['tradeGbn'] = "실거래"
+    concat = convert_column(ColumnDictionary.TRADE_DICTIONARY, concat, include_columns=['date_id'], sort=True)
+    concat = concat.replace(' ', np.nan)
+
+    path = os.path.join(PathDictionary.snapshot, f"{month}.csv")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path):
+        logger.info(f"Data exists. we will merge org and new dataframe")
+        concat = merge_dataframe(pd.read_csv(path), concat)
+    else:
+        logger.info(f"Data doesn't exists. we will save new dataframe only")
+    concat.to_csv(f"{path}", index=False)
+
+    logger.info(f"Save the data in '{path}'")
 
 
+# TODO: history 추가
 def run():
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
