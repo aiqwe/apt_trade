@@ -17,7 +17,7 @@ def daily(month):
     total = df['계약일'].count()
 
     message = Template(BlockTemplate.DAILY_MESSAGE).render(
-        date_id="2024-09-19",
+        date_id=date_id,
         month=f"{str(month)[:4]}-{str(month)[4:]}",
         total_trade=total,
         sgg_list=agg['시군구코드'].to_list(),

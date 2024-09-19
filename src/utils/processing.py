@@ -44,10 +44,28 @@ def convert_column(dictionary: dict, df: pd.DataFrame = None, column_name: str =
         return _df
 
 def merge_dataframe(org: pd.DataFrame, new: pd.DataFrame):
+    """ org와 new 데이터프레임 axis=0으로 머지한다
+
+    Args:
+        org: 합쳐질 데이터프레임
+        new: 합칠 데이터프레임
+
+    """
     _check_same_columns(org, new)
     return pd.concat([org, new])
 
 def delete_latest_history(org: pd.DataFrame, this_month: str, last_month: str, date_column = "date_id"):
+    """ this_month와 last_month가 중복되면 해당 데이터를 org에서 삭제하고 새로 get한 dataframe을 추가한다
+
+    Args:
+        org: 원본 데이터프레임
+        this_month: 이번달 포맷 yyyyMM, i.e. 202408
+        last_month: 다음달 포맷 yyyyMM, i.e. 202409
+        date_column: 스냅샷 일자 yyyy-MM-dd 형태 i.e. 2024-09-19
+
+    Returns:
+
+    """
     if date_column not in org.columns:
         raise ValueError(f"{date_column} is not in columns of org dataframe\n{org.columns=}")
     _org = deepcopy(org)
