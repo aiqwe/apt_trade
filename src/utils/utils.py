@@ -26,12 +26,7 @@ def get_api_data(base_url: str = None, serviceKey: str = None, **params):
             numOfRows: Row 수
     """
     if not serviceKey:
-<<<<<<< HEAD:src/utils.py
         serviceKey = load_env(".env", "PUBLIC_DATA_API_KEY")
-=======
-        env_path = find_file(".env", start_path=PathDictionary.root)
-        serviceKey = os.getenv("PUBLIC_DATA_API_KEY", load_dotenv(env_path))
->>>>>>> 99cc88d615249237608d28abb1a15fd13e77b561:src/utils/utils.py
 
     if params:
         url = base_url + f"?serviceKey={serviceKey}&" + f"&".join(f"{k}={v}" for k, v in params.items())
