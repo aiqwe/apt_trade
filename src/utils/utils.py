@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from .config import PathDictionary
 
 def load_env(key: str, fname=".env"):
-    env_path = find_file(".env")
+    env_path = find_file(fname)
     env = os.getenv(key, load_dotenv(env_path))
     if not env:
         raise ValueError(f"cant find env variable '{key}'")
@@ -26,7 +26,7 @@ def get_api_data(base_url: str = None, serviceKey: str = None, **params):
             numOfRows: Row 수
     """
     if not serviceKey:
-        serviceKey = load_env(".env", "PUBLIC_DATA_API_KEY")
+        serviceKey = load_env(key="PUBLIC_DATA_API_KEY", fname=".env")
 
     if params:
         url = base_url + f"?serviceKey={serviceKey}&" + f"&".join(f"{k}={v}" for k, v in params.items())

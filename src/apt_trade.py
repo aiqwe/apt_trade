@@ -50,8 +50,8 @@ def main_task(month: int, date_id: str):
 
     """
     logger.info(f"Trade: {date_id} - {month} Task Start")
-
-    lawd_cd_list = get_lawd_cd()['lawd_cd'].to_list()
+    lawd_cd = get_lawd_cd()
+    lawd_cd_list = lawd_cd['lawd_cd'].to_list()
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as p:
         result = list(tqdm(p.map(partial(_sub_task, deal_ymd=month), lawd_cd_list), total=len(lawd_cd_list)))
     result = [ele for ele in result if ele is not None]
@@ -62,6 +62,15 @@ def main_task(month: int, date_id: str):
     concat['tradeGbn'] = "실거래"
     concat = convert_column(ColumnDictionary.TRADE_DICTIONARY, concat, include_columns=['date_id'], sort=True)
     concat = concat.replace(' ', np.nan)
+
+    # 시군구코드 -> 시군구명으로
+    name = lawd_cd['sgg_nm'].to_list()
+    code = lawd_cd['lawd_cd'].to_list()
+
+    converter = {}
+    for n, c in zip(name, code):
+        converter.update({int(c): n})
+    concat['시군구코드'] = concat['시군구코드'].apply(lambda x: converter[x])
 
     path = os.path.join(PathDictionary.snapshot, f"{month}.csv")
     os.makedirs(os.path.dirname(path), exist_ok=True)
