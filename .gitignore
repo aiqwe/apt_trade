@@ -163,3 +163,4 @@ cython_debug/
 *.ipynb
 **/*.ipynb
 notebook.ipynb
+**/notebook.ipynb

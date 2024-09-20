@@ -4,4 +4,4 @@ loguru
 dateutil
 tqdm
 dotenv
-slack_sdk
+python-telegram-bot
