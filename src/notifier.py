@@ -13,6 +13,7 @@ def daily(month):
     df = pd.read_csv(fpath)
 
     date_id = df['date_id'].max()
+    df = df[df['date_id'] == date_id]
     agg = df.groupby('시군구코드')[['계약일', '계약해지여부']].count().reset_index()
     total = df['계약일'].count()
 
