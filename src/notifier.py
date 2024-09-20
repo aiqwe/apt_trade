@@ -38,5 +38,5 @@ if __name__ == '__main__':
     token = load_env("TELEGRAM_BOT_TOKEN", ".env")
     chat_id = "-1002254050157"
 
-    asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token))
     asyncio.run(send(text=generate_message(last_month), chat_id=chat_id, token=token))
+    asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token))
