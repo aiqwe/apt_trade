@@ -26,9 +26,8 @@ def generate_message(month):
         apt_trade_cancels=agg['계약해지여부'].to_list(),
         zip=zip)
     return message
-async def send(text: str, chat_id: str, token: str, proxy: str):
-    request = HTTPXRequest(proxy_url=proxy)
-    bot = telegram.Bot(token=token, request=request)
+async def send(text: str, chat_id: str, token: str):
+    bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
 
 
@@ -37,7 +36,6 @@ if __name__ == '__main__':
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     token = load_env("TELEGRAM_BOT_TOKEN", ".env")
     chat_id = load_env("TELEGRAM_CHAT_ID", ".env")
-    proxy = load_env("PROXY", ".env")
 
-    asyncio.run(send(text=generate_message(last_month), chat_id=chat_id, token=token, proxy=proxy))
-    asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token, proxy=proxy))
+    asyncio.run(send(text=generate_message(last_month), chat_id=chat_id, token=token))
+    asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token))
