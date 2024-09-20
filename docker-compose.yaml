@@ -1,0 +1,8 @@
+services:
+  notifier:
+    build: .
+    ports:
+      - 80:80
+      - 403:403
+    volumes:
+      - ./src/data:/root/apt_trade/src/data

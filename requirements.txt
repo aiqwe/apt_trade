@@ -1,7 +1,11 @@
 beautifulsoup4
 pandas
 loguru
-dateutil
+python-dateutil
 tqdm
-dotenv
+python-dotenv
 python-telegram-bot
+telegram
+requests
+lxml
+jinja2

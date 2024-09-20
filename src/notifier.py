@@ -36,7 +36,7 @@ if __name__ == '__main__':
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     token = load_env("TELEGRAM_BOT_TOKEN", ".env")
-    chat_id = "-1002254050157"
+    chat_id = load_env("TELEGRAM_CHAT_ID", ".env")
 
     asyncio.run(send(text=generate_message(last_month), chat_id=chat_id, token=token))
     asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token))

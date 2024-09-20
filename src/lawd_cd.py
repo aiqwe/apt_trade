@@ -2,7 +2,8 @@ import os
 import pandas as pd
 from loguru import logger
 
-from src.utils import get_api_data, BASE_URL
+from utils.utils import get_api_data
+from utils.config import URLDictionary
 import json
 
 def main():
@@ -13,7 +14,7 @@ def main():
     # pageNo
     # numOfRows
     logger.info("API 호출...")
-    response = get_api_data(base_url=BASE_URL['lawd_cd'], pageNo=1, numOfRows=1000, type='json', locatadd_nm='서울')
+    response = get_api_data(base_url=URLDictionary.URL['lawd_cd'], pageNo=1, numOfRows=1000, type='json', locatadd_nm='서울')
     data = json.loads(response.text)['StanReginCd'][1]['row']
     df = pd.DataFrame.from_records(data)
     # save

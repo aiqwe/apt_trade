@@ -76,7 +76,11 @@ def main_task(month: int, date_id: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if os.path.exists(path):
         logger.info(f"Data exists. we will merge org and new dataframe")
-        concat = merge_dataframe(pd.read_csv(path), concat)
+        exists = pd.read_csv(path)
+        if len(exists['date_id']) > 0:
+            logger.info(f"{date_id} exists. now removing...")
+            exists = exists[exists['date_id'] == date_id]
+        concat = merge_dataframe(exists, concat)
     else:
         logger.info(f"Data doesn't exists. we will save new dataframe only")
     concat.to_csv(f"{path}", index=False)

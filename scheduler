@@ -1,0 +1,3 @@
+0 1 * * * /usr/local/bin/python /root/apt_trade/src/apt_trade.py >> /root/apt_trade/cron.log 2>&1
+1 1 * * * /usr/local/bin/python /root/apt_trade/src/bunyang_trade.py >> /root/apt_trade/cron.log 2>&1
+2 1 * * * /usr/local/bin/python /root/apt_trade/src/notifier.py >> /root/apt_trade/cron.log 2>&1
