@@ -1,6 +1,6 @@
 import asyncio
 import telegram
-from telegram.utils.request import Request
+from telegram.request import HTTPXRequest
 import pandas as pd
 from utils.utils import load_env, find_file
 from utils.template import TelegramTemplate
@@ -27,7 +27,7 @@ def generate_message(month):
         zip=zip)
     return message
 async def send(text: str, chat_id: str, token: str, proxy: str):
-    request = Request(proxy_url=proxy)
+    request = HTTPXRequest(proxy_url=proxy)
     bot = telegram.Bot(token=token, request=request)
     await bot.send_message(chat_id=chat_id, text=text)
 
