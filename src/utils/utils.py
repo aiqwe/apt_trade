@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from io import StringIO
 from dotenv import load_dotenv
+from sqlitedict import SqliteDict
 from .config import PathDictionary
 
 def load_env(key: str, fname=".env", start_path = None):
@@ -113,3 +114,13 @@ def find_file(fname: str, start_path: str = None):
         return paths[0]
     if len(paths) > 1:
         return paths
+
+def batch_checker(basename, date_id, func, *args, **kwargs):
+    db_path = os.path.join(PathDictionary.metastore, "metastore.sqlite")
+    db = SqliteDict(db_path)
+    for tasks in db[date_id]:
+        if basename in tasks:
+            pass
+
+
+

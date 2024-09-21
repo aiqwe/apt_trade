@@ -14,6 +14,7 @@ class PathDictionary:
     data: str = str(Path(src).joinpath("data")) # apt_trade/src/data
     snapshot: str = str(Path(data).joinpath("snapshots")) # apt_trade/src/data/snpashots
     history: str = str(Path(data).joinpath("history")) # apt_trade/src/data/history
+    metastore: str = str(Path(src).joinpath("metastore")) # apt_trade/src/metastore
 
 class URLDictionary:
     URL = {
