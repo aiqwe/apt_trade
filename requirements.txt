@@ -10,3 +10,4 @@ requests
 lxml
 jinja2
 sqlitedict
+streamlit
