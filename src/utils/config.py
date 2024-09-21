@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class PathDictionary:
     """
     Attributes:
@@ -9,12 +10,16 @@ class PathDictionary:
         cls.snapshot: apt_trade/src/data/snapshots
         cls.history: apt_trade/src/data/history
     """
-    root: str = str(Path(__file__).parent.parent.parent) # apt_trade
-    src: str = str(Path(root).joinpath("src")) # apt_trade/src
-    data: str = str(Path(src).joinpath("data")) # apt_trade/src/data
-    snapshot: str = str(Path(data).joinpath("snapshots")) # apt_trade/src/data/snpashots
-    history: str = str(Path(data).joinpath("history")) # apt_trade/src/data/history
-    metastore: str = str(Path(src).joinpath("metastore")) # apt_trade/src/metastore
+
+    root: str = str(Path(__file__).parent.parent.parent)  # apt_trade
+    src: str = str(Path(root).joinpath("src"))  # apt_trade/src
+    data: str = str(Path(src).joinpath("data"))  # apt_trade/src/data
+    snapshot: str = str(
+        Path(data).joinpath("snapshots")
+    )  # apt_trade/src/data/snpashots
+    history: str = str(Path(data).joinpath("history"))  # apt_trade/src/data/history
+    metastore: str = str(Path(src).joinpath("metastore"))  # apt_trade/src/metastore
+
 
 class URLDictionary:
     URL = {
@@ -22,6 +27,7 @@ class URLDictionary:
         "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
         "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
     }
+
 
 class ColumnDictionary:
     LAWD_CD_DICTIONARY = {
@@ -55,11 +61,10 @@ class ColumnDictionary:
         "cdealDay": "계약해지사유발생일",
         "rgstDate": "등기일자",
         "ownershipGbn": "권리구분",
-        "rgstDate": "등기일자",
         "slerGbn": "매수자",
         "buyerGbn": "매도자",
         "estateAgentSggNm": "중개사소재지",
         "sggCd": "시군구코드",
         "umdNm": "법정동",
-        "tradeGbn": "거래구분"
+        "tradeGbn": "거래구분",
     }

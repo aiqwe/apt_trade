@@ -6,6 +6,7 @@ from utils.utils import get_api_data, batch_manager, get_task_id
 from utils.config import URLDictionary
 import json
 
+
 def main():
     # API Parameters
     # ServiceKey
@@ -14,14 +15,21 @@ def main():
     # pageNo
     # numOfRows
     logger.info("API 호출...")
-    response = get_api_data(base_url=URLDictionary.URL['lawd_cd'], pageNo=1, numOfRows=1000, type='json', locatadd_nm='서울')
-    data = json.loads(response.text)['StanReginCd'][1]['row']
+    response = get_api_data(
+        base_url=URLDictionary.URL["lawd_cd"],
+        pageNo=1,
+        numOfRows=1000,
+        type="json",
+        locatadd_nm="서울",
+    )
+    data = json.loads(response.text)["StanReginCd"][1]["row"]
     df = pd.DataFrame.from_records(data)
     # save
     logger.info("저장중...")
     current_path = os.path.dirname(__file__)
     df.to_csv(f"{current_path}/data/lawd_cd.csv", index=False)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
     batch_manager(task_id=get_task_id(__file__), key=date_id, func=main)
