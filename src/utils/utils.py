@@ -202,6 +202,11 @@ def delete_metastore(dbpath: str = None, key: str = None, value: Union[list, str
         db[key] = tasks
         db.commit()
 
+def get_metastore(dbpath: str = None):
+    if not dbpath:
+        dbpath = os.path.join(PathDictionary.metastore, 'metastore.sqlite')
+    return SqliteDict(dbpath)
+
 
 
 
