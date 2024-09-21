@@ -166,3 +166,4 @@ notebook.ipynb
 **/notebook.ipynb
 .scheduler_local
 .scheduler
+cron.log
