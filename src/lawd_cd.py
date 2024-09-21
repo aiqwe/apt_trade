@@ -24,4 +24,4 @@ def main():
 
 if __name__ == '__main__':
     date_id = datetime.now().strftime("%Y-%m-%d")
-    batch_manager(task_id=os.path.basename(__file__), key=date_id, func=main)
+    batch_manager(task_id=get_task_id(__file__), key=date_id, func=main)

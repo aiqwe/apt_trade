@@ -97,5 +97,5 @@ if __name__ == '__main__':
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
 
-    batch_manager(task_id=get_task_id(os.path.basename(__file__), this_month), key=date_id, func=main_task, month=last_month, date_id=date_id)
-    batch_manager(task_id=get_task_id(os.path.basename(__file__), last_month), key=date_id, func=main_task, month=this_month, date_id=date_id)
+    batch_manager(task_id=get_task_id(__file__, this_month), key=date_id, func=main_task, month=last_month, date_id=date_id)
+    batch_manager(task_id=get_task_id(__file__, last_month), key=date_id, func=main_task, month=this_month, date_id=date_id)

@@ -120,14 +120,14 @@ def find_file(fname: str, start_path: str = None):
     if len(paths) > 1:
         return paths
 
-def get_task_id(basename: str, *args):
+def get_task_id(file_dunder: str, *args):
     """ metastore에서 체크할 task_id 생성
     Args:
-        basename: 보통 실행할 스크립트의 basename 설정
+        file_dunder: __file__로 고정
         *args: 추가로 task_id에 붙일 문자
 
     """
-    basename = basename.lower().split(".")[0]
+    basename = os.path.basename(file_dunder).lower().split(".")[0]
     return f"{basename}_{'_'.join(str(arg) for arg in args)}"
 
 def batch_manager(task_id: str, key: str, func, if_message = False, *args, **kwargs):
