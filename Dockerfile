@@ -8,7 +8,7 @@ COPY . $app
 WORKDIR $app
 RUN pip install -r requirements.txt
 
-RUN crontab ./scheduler
+RUN crontab ./.scheduler
 
 EXPOSE 80 403
 CMD cron && tail -f /dev/null
