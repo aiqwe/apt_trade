@@ -16,5 +16,4 @@ def git_push(date_id: str):
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    git_push(date_id)
-    # batch_manager(task_id=get_task_id(__file__), key=date_id, func=git_push, date_id=date_id)
+    batch_manager(task_id=get_task_id(__file__), key=date_id, func=git_push, date_id=date_id)
