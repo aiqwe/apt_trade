@@ -9,3 +9,4 @@ telegram
 requests
 lxml
 jinja2
+sqlitedict

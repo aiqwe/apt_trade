@@ -9,7 +9,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 
-from utils.utils import get_api_data, get_lawd_cd, parse_xml
+from utils.utils import get_api_data, get_lawd_cd, parse_xml, batch_manager, get_task_id
 from utils.config import ColumnDictionary, PathDictionary, URLDictionary
 from utils.processing import convert_column, delete_latest_history, merge_dataframe
 
@@ -81,22 +81,21 @@ def main_task(month: int, date_id: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if os.path.exists(path):
         logger.info(f"Data exists. we will merge org and new dataframe")
-        concat = merge_dataframe(pd.read_csv(path), concat)
+        exists = pd.read_csv(path)
+        if len(exists['date_id']) > 0:
+            logger.info(f"{date_id} exists. now removing...")
+            exists = exists[exists['date_id'] == date_id]
+        concat = merge_dataframe(exists, concat)
     else:
         logger.info(f"Data doesn't exists. we will save new dataframe only")
     concat.to_csv(f"{path}", index=False)
 
     logger.info(f"Save the data in '{path}'")
 
-
-def run():
+if __name__ == '__main__':
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
 
-    main_task(this_month, date_id)
-    main_task(last_month, date_id)
-
-
-if __name__ == '__main__':
-    run()
+    batch_manager(task_id=get_task_id(os.path.basename(__file__), this_month), key=date_id, func=main_task, month=last_month, date_id=date_id)
+    batch_manager(task_id=get_task_id(os.path.basename(__file__), last_month), key=date_id, func=main_task, month=this_month, date_id=date_id)

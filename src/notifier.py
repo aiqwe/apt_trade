@@ -1,19 +1,24 @@
 import asyncio
+import os.path
+
 import telegram
 from telegram.request import HTTPXRequest
 import pandas as pd
-from utils.utils import load_env, find_file
+from utils.utils import load_env, find_file, send, batch_manager, get_task_id
 from utils.template import TelegramTemplate
 from jinja2 import Template
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-def generate_message(month):
+def generate_message(month: str, date_id: str):
     fpath = find_file(f"{month}.csv")
     df = pd.read_csv(fpath)
 
-    date_id = df['date_id'].max()
     df = df[df['date_id'] == date_id]
+    if len(df) == 0:
+        error_msg = f"No data found for {date_id}"
+        send(text=error_msg)
+        raise ValueError(error_msg)
     agg = df.groupby('시군구코드')[['계약일', '계약해지여부']].count().reset_index()
     total = df['계약일'].count()
 
@@ -26,16 +31,11 @@ def generate_message(month):
         apt_trade_cancels=agg['계약해지여부'].to_list(),
         zip=zip)
     return message
-async def send(text: str, chat_id: str, token: str):
-    bot = telegram.Bot(token=token)
-    await bot.send_message(chat_id=chat_id, text=text)
-
 
 if __name__ == '__main__':
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
-    token = load_env("TELEGRAM_BOT_TOKEN", ".env")
-    chat_id = load_env("TELEGRAM_CHAT_ID", ".env")
+    date_id = datetime.now().strftime("%Y-%m-%d")
 
-    asyncio.run(send(text=generate_message(last_month), chat_id=chat_id, token=token))
-    asyncio.run(send(text=generate_message(this_month), chat_id=chat_id, token=token))
+    batch_manager(task_id=get_task_id(os.path.basename(__file__), last_month), key=date_id, func=send, if_message=True, text=generate_message(last_month, date_id=date_id))
+    batch_manager(task_id=get_task_id(os.path.basename(__file__), this_month), key=date_id, func=send, if_message=True, text=generate_message(this_month, date_id=date_id))

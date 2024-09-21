@@ -2,10 +2,15 @@ import requests
 import os
 from bs4 import BeautifulSoup
 import pandas as pd
+from typing import Union
 from io import StringIO
+from datetime import datetime
 from dotenv import load_dotenv
 from sqlitedict import SqliteDict
 from .config import PathDictionary
+from loguru import logger
+import asyncio
+import telegram
 
 def load_env(key: str, fname=".env", start_path = None):
     """ 1) 환경변수 설정이 되었는지 검색하고, 2) 설정값이 없으면 환경변수가 정의된 파일을찾는다
@@ -115,12 +120,91 @@ def find_file(fname: str, start_path: str = None):
     if len(paths) > 1:
         return paths
 
-def batch_checker(basename, date_id, func, *args, **kwargs):
+def get_task_id(basename: str, *args):
+    """ metastore에서 체크할 task_id 생성
+    Args:
+        basename: 보통 실행할 스크립트의 basename 설정
+        *args: 추가로 task_id에 붙일 문자
+
+    """
+    basename = basename.lower().split(".")[0]
+    return f"{basename}_{'_'.join(str(arg) for arg in args)}"
+
+def batch_manager(task_id: str, key: str, func, if_message = False, *args, **kwargs):
+    """ metastore에 실행되었는지 확인후, 실행되지 않았으면 func을 실행
+
+    Args:
+        task_id: metastore에서 체크할 task_id, get_task_id 함수로 생성
+        key: metastore의 key
+        func: 실행할 함수
+        if_message: telegram 메세지인 경우 True(async 사용 때문)
+        *args: func에 전달될 인수
+        **kwargs: func에 전달될 인수
+    """
     db_path = os.path.join(PathDictionary.metastore, "metastore.sqlite")
     db = SqliteDict(db_path)
-    for tasks in db[date_id]:
-        if basename in tasks:
-            pass
+    if not db.get(key, None):
+        db[key] = []
+        db.commit()
+    if task_id in db[key]:
+        logger.info(f"{task_id} already executed.")
+        return
+    else:
+        try:
+            tasks = db[key]
+            tasks.append(task_id)
+            db[key] = tasks
+            db.commit()
+            db.close()
+            if if_message:
+                asyncio.run(send(text=kwargs['text']))
+            else:
+                func(*args, **kwargs)
+        except Exception as e:
+            logger.error(repr(e))
+            asyncio.run(send(repr(e)))
+
+async def send(text: str, chat_id: str = None, token: str = None):
+    """ telegram chat_id로 메세지 전송
+    Args:
+        text: 전송할 메세지
+        chat_id: telegram channel id
+        token: bot의 token
+    """
+    if not token:
+        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathDictionary.root)
+    if not chat_id:
+        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathDictionary.root)
+    bot = telegram.Bot(token=token)
+    await bot.send_message(chat_id=chat_id, text=text)
+
+def delete_metastore(dbpath: str = None, key: str = None, value: Union[list, str] = None):
+    """ sqlitedict db metastore의 key의 특정 value를 삭제
+    Args:
+        dbpath: sqlite db의 위치
+        key: 삭제할 key default to datetime.now()
+        value: list 안에 삭제할 값
+    """
+    if not dbpath:
+        dbpath = os.path.join(PathDictionary.metastore, 'metastore.sqlite')
+    if not key:
+        key = datetime.now().strftime("%Y-%m-%d")
+    if not value:
+        raise ValueError("parameter 'value' should be passed")
+    logger.info(f"key: {key}\nvalue: {value}")
+    with SqliteDict(dbpath) as db:
+        tasks = db[key]
+        if isinstance(value, list):
+            for v in value:
+                tasks.remove(v)
+        if isinstance(value, str):
+            tasks.remove(value)
+        db[key] = tasks
+        db.commit()
+
+
+
+
 
 
 

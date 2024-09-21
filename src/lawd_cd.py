@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 from loguru import logger
-
-from utils.utils import get_api_data
+from datetime import datetime
+from utils.utils import get_api_data, batch_manager, get_task_id
 from utils.config import URLDictionary
 import json
 
@@ -23,4 +23,5 @@ def main():
     df.to_csv(f"{current_path}/data/lawd_cd.csv", index=False)
 
 if __name__ == '__main__':
-    main()
+    date_id = datetime.now().strftime("%Y-%m-%d")
+    batch_manager(task_id=os.path.basename(__file__), key=date_id, func=main)
