@@ -30,7 +30,7 @@ class Metastore:
         return list(self.db.values())
 
     def get_all(self):
-        return {k: v for k, v in self.db.itemes()}
+        return {k: v for k, v in self.db.items()}
 
     def delete(self, key: str = None, value: Union[list, str] = None):
         """sqlitedict db metastore의 key의 특정 value를 삭제
@@ -54,24 +54,35 @@ class Metastore:
             db[key] = tasks
             db.commit()
 
-    def __len__(self):
-        return len(self.get_keys())
-
-    def __getitem__(self, key: str):
-        return self.db[key]
-
-    def __setitem__(self, key: str, value: Any):
-        with self.db as db:
-            db.setdefault(key, value)
-            db.commit()
+    def get(self, key: str):
+        return self.db.get(key, [])
 
     def add(self, key: str, value: Any):
         with self.db as db:
+            if isinstance(value, str):
+                tmp = db.get(key, [])
+                tmp.append(value)
             if isinstance(value, list):
                 tmp = db.setdefault(key, [])
-                tmp.append(value)
+                tmp = tmp + value
             if isinstance(value, dict):
                 tmp = db.setdefault(key, {})
                 tmp.update(value)
             db[key] = tmp
+            db.commit()
+
+    def setdefault(self, key: str, value: Any):
+        with self.db as db:
+            db.setdefault(key, value)
+            db.commit()
+
+    def __len__(self):
+        return len(self.get_keys())
+
+    def __getitem__(self, key: str):
+        return self.db.get(key, [])
+
+    def __setitem__(self, key: str, value: Any):
+        with self.db as db:
+            db.setdefault(key, value)
             db.commit()

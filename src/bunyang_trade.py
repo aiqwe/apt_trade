@@ -101,9 +101,12 @@ def main_task(month: int, date_id: str):
     if os.path.exists(path):
         logger.info("Data exists. we will merge org and new dataframe")
         exists = pd.read_csv(path)
-        if len(exists["date_id"]) > 0:
+        # 실거래만
+        trade = exists[exists['거래구분'] == '분양권/입주권']
+        # 이미 소싱했으면 삭제후 추가
+        if len(trade[trade["date_id"] == date_id]) > 0:
             logger.info(f"{date_id} exists. now removing...")
-            exists = exists[exists["date_id"] == date_id]
+            trade = trade[trade["date_id"] != date_id]
         concat = merge_dataframe(exists, concat)
     else:
         logger.info("Data doesn't exists. we will save new dataframe only")
@@ -116,6 +119,7 @@ if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
+    block=True
 
     batch_manager(
         task_id=get_task_id(__file__, this_month),
@@ -123,6 +127,7 @@ if __name__ == "__main__":
         func=main_task,
         month=last_month,
         date_id=date_id,
+        block=block
     )
     batch_manager(
         task_id=get_task_id(__file__, last_month),
@@ -130,4 +135,5 @@ if __name__ == "__main__":
         func=main_task,
         month=this_month,
         date_id=date_id,
+        block=block
     )

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from utils.config import PathDictionary
 import asyncio
+from loguru import logger
 
 
 def _prepare_dataframe(month: str, date_id: str):
@@ -15,6 +16,7 @@ def _prepare_dataframe(month: str, date_id: str):
     df = df[df["date_id"] == date_id]
     if len(df) == 0:
         error_msg = f"No data found for {date_id}"
+        logger.error(error_msg)
         asyncio.run(send_log(error_msg))
         raise ValueError(error_msg)
     return df
@@ -100,9 +102,9 @@ if __name__ == "__main__":
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
     sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
-    # chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathDictionary.root)
-    chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root)
-    block = False
+    chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathDictionary.root)
+    # chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root)
+    block = True
 
     batch_manager(
         task_id=get_task_id(__file__, last_month, "daily_status"),

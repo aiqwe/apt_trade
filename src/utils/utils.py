@@ -157,7 +157,11 @@ def batch_manager(
     """
     if block:
         meta = Metastore()
-        if task_id in meta.db[key]:
+        if not meta[key]:
+            meta.setdefault(key, [])
+            meta.commit()
+            print(meta[key])
+        if task_id in meta[key]:
             logger.info(f"{task_id} already executed.")
             return
         else:
@@ -176,7 +180,7 @@ def batch_manager(
             except Exception as e:
                 logger.error(repr(e))
                 asyncio.run(
-                    send(
+                    send_log(
                         text=repr(e),
                         chat_id=kwargs.get("chat_id", None),
                         token=kwargs.get("token", None),
@@ -197,7 +201,7 @@ def batch_manager(
         except Exception as e:
             logger.error(repr(e))
             asyncio.run(
-                send(
+                send_log(
                     text=repr(e),
                     chat_id=kwargs.get("chat_id", None),
                     token=kwargs.get("token", None),
