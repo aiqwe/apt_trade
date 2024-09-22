@@ -106,7 +106,7 @@ if __name__ == "__main__":
         func=send,
         if_message=True,
         text=daily_aggregation(last_month, date_id=date_id, sgg_contains=sgg_contains),
-        chat_id=test_chat_id,
+        chat_id=monthly_chat_id,
         block=block,
     )
     batch_manager(
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         func=send,
         if_message=True,
         text=daily_aggregation(this_month, date_id=date_id, sgg_contains=sgg_contains),
-        chat_id=test_chat_id,
+        chat_id=monthly_chat_id,
         block=block,
     )
 
@@ -133,21 +133,21 @@ if __name__ == "__main__":
         "옥수하이츠",
     ]
 
-    # batch_manager(
-    #     task_id=get_task_id(__file__, last_month, "daily_details"),
-    #     key=date_id,
-    #     func=send,
-    #     if_message=True,
-    #     text=daily_specific_apt(last_month, date_id=date_id, apt_contains=False, filter_new=True),
-    #     chat_id=detail_chat_id,
-    #     block=block,
-    # )
-    # batch_manager(
-    #     task_id=get_task_id(__file__, this_month, "daily_details"),
-    #     key=date_id,
-    #     func=send,
-    #     if_message=True,
-    #     text=daily_specific_apt(this_month, date_id=date_id, apt_contains=False, filter_new=True),
-    #     chat_id=detail_chat_id,
-    #     block=block,
-    # )
+    batch_manager(
+        task_id=get_task_id(__file__, last_month, "daily_details"),
+        key=date_id,
+        func=send,
+        if_message=True,
+        text=daily_specific_apt(last_month, date_id=date_id, apt_contains=False, filter_new=True),
+        chat_id=detail_chat_id,
+        block=block,
+    )
+    batch_manager(
+        task_id=get_task_id(__file__, this_month, "daily_details"),
+        key=date_id,
+        func=send,
+        if_message=True,
+        text=daily_specific_apt(this_month, date_id=date_id, apt_contains=False, filter_new=True),
+        chat_id=detail_chat_id,
+        block=block,
+    )
