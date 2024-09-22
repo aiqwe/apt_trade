@@ -33,11 +33,13 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     last_total = last_df["계약일"].count()
     agg = (
         df[df["시군구코드"].isin(sgg_contains)]
-        .groupby("시군구코드")[["계약일", "계약해지여부"]]
+        .groupby("시군구코드")[["계약일", "계약해지여부", "신규거래"]]
         .count()
         .reset_index()
     )
     change = total - last_total
+    sgg_change_agg = df.groupby("시군구코드")[['계약일', '계약해지여부', '신규거래']].count()
+    sgg_change = sgg_change_agg[sgg_change_agg['신규거래'] > 0].reset_index()[['시군구코드', '신규거래']].to_dict(orient="records")
 
     message = Template(TelegramTemplate.DAILY_STATUS).render(
         date_id=date_id,
@@ -45,8 +47,10 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
         total_trade=total,
         change=change,
         sgg_list=agg["시군구코드"].to_list(),
-        apt_trade=agg["계약일"].to_list(),
+        apt_trades=agg["계약일"].to_list(),
+        new_trades=agg["신규거래"].to_list(),
         apt_trade_cancels=agg["계약해지여부"].to_list(),
+        sgg_change=sgg_change,
         zip=zip,
     )
     return message
@@ -88,30 +92,32 @@ if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
-    sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+
     monthly_chat_id = load_env("TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathDictionary.root)
     detail_chat_id = load_env("TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathDictionary.root)
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root)
+
     block = False
 
-    # batch_manager(
-    #     task_id=get_task_id(__file__, last_month, "monthly"),
-    #     key=date_id,
-    #     func=send,
-    #     if_message=True,
-    #     text=daily_aggregation(last_month, date_id=date_id, sgg_contains=sgg_contains),
-    #     chat_id=test_chat_id,
-    #     block=block,
-    # )
-    # batch_manager(
-    #     task_id=get_task_id(__file__, this_month, "monthly"),
-    #     key=date_id,
-    #     func=send,
-    #     if_message=True,
-    #     text=daily_aggregation(this_month, date_id=date_id, sgg_contains=sgg_contains),
-    #     chat_id=test_chat_id,
-    #     block=block,
-    # )
+    sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+    batch_manager(
+        task_id=get_task_id(__file__, last_month, "monthly"),
+        key=date_id,
+        func=send,
+        if_message=True,
+        text=daily_aggregation(last_month, date_id=date_id, sgg_contains=sgg_contains),
+        chat_id=test_chat_id,
+        block=block,
+    )
+    batch_manager(
+        task_id=get_task_id(__file__, this_month, "monthly"),
+        key=date_id,
+        func=send,
+        if_message=True,
+        text=daily_aggregation(this_month, date_id=date_id, sgg_contains=sgg_contains),
+        chat_id=test_chat_id,
+        block=block,
+    )
 
     apt_contains = [
         "헬리오시티",
@@ -127,21 +133,21 @@ if __name__ == "__main__":
         "옥수하이츠",
     ]
 
-    batch_manager(
-        task_id=get_task_id(__file__, last_month, "daily_details"),
-        key=date_id,
-        func=send,
-        if_message=True,
-        text=daily_specific_apt(last_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
-        chat_id=detail_chat_id,
-        block=block,
-    )
-    batch_manager(
-        task_id=get_task_id(__file__, this_month, "daily_details"),
-        key=date_id,
-        func=send,
-        if_message=True,
-        text=daily_specific_apt(this_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
-        chat_id=detail_chat_id,
-        block=block,
-    )
+    # batch_manager(
+    #     task_id=get_task_id(__file__, last_month, "daily_details"),
+    #     key=date_id,
+    #     func=send,
+    #     if_message=True,
+    #     text=daily_specific_apt(last_month, date_id=date_id, apt_contains=False, filter_new=True),
+    #     chat_id=detail_chat_id,
+    #     block=block,
+    # )
+    # batch_manager(
+    #     task_id=get_task_id(__file__, this_month, "daily_details"),
+    #     key=date_id,
+    #     func=send,
+    #     if_message=True,
+    #     text=daily_specific_apt(this_month, date_id=date_id, apt_contains=False, filter_new=True),
+    #     chat_id=detail_chat_id,
+    #     block=block,
+    # )

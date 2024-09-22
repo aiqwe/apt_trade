@@ -6,10 +6,13 @@ class TelegramTemplate:
     ⭐ {{ date_id }}일 기준 실거래 월별 집계
     * {{ month }}월 서울 전체 실거래 {{ total_trade }}건
     * 전일 대비 +{{ change }} 건
+    {%- for row in sgg_change %}
+    - {{ row['시군구코드'] }} (+{{ row['신규거래'] }})
+    {% endfor %}
     
     * 시군구별 실거래
-    {%- for sgg_nm, trades, cancels in zip(sgg_list, apt_trade, apt_trade_cancels) %}
-    - {{ sgg_nm }}: 실거래({{ trades }}) | 계약해지({{ cancels }})
+    {%- for sgg_nm, trades, cancels, news in zip(sgg_list, apt_trades, apt_trade_cancels, new_trades) %}
+    - {{ sgg_nm }}: 계약({{ trades }}) | 해지({{ cancels }}) | 전일대비(+{{ news }})
     {%- endfor %}"""
     )
 

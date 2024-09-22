@@ -81,6 +81,7 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     )
     _df = _df.drop(columns=["계약년도", "계약월", "계약일"], axis=0)
     _df = _df.rename(columns={"계약시점": "계약일"})
+    logger.info("Completed generating '계약일' column.")
 
     # 시군구코드 -> 시군구명으로 변경하기
     lawd_cd = get_lawd_cd()
@@ -91,6 +92,10 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     for n, c in zip(name, code):
         converter.update({int(c): n})
     _df["시군구코드"] = _df["시군구코드"].apply(lambda x: converter[x] if isinstance(x, int) or x.isdigit() else x)
+    logger.info("Completed converting '시군구코드' column.")
+
+    _df['신규거래'] = np.nan
+    logger.info("Completed generating temporary '신규거래' column with filling in 'np.nan'")
 
     return _df
 
@@ -112,14 +117,16 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
     prev_date_id = (
             datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
-
+    logger.info('generating seq, pk columns')
     _df['seq'] = _df.groupby(["거래구분", "아파트명", "시군구코드", "법정동", "date_id"]).cumcount() + 1
     _df['pk'] = _df['거래구분'].str[0] + _df['아파트명'] + _df['시군구코드'] + _df['법정동'] + _df['seq'].astype(str).apply(lambda x: x.rjust(5, "0"))
 
     # 신규거래 만들기
-    _df['신규거래'] = np.where((_df['date_id'] == date_id) & (~_df['pk'].isin(_df[_df['date_id'] == prev_date_id]['pk'])), "신규", "기존")
+    _df['신규거래'] = np.where((_df['date_id'] == date_id) & (~_df['pk'].isin(_df[_df['date_id'] == prev_date_id]['pk'])), "신규", np.nan)
+    logger.info("updated '신규거래' columns")
     # seq / pk 제거
     _df = _df.drop(columns=["pk", "seq"], axis=0)
+    logger.info('dropped seq, pk columns')
 
     return _df
 
