@@ -18,10 +18,11 @@ def load_env(key: str, fname=".env", start_path=None):
     Args:
         key: 검색할 환경변수 키
         fname: 환경변수를 설정한 파일명, default ".env"
-        start_path: fname을 찾을 최상위 폴더, 해당 폴더에서부터 sub folder를 재귀적으로 탐색
+        start_path: fname을 찾을 최상위 폴더, 해당 root(apt_trade)에서부터 sub folder를 재귀적으로 탐색
 
     """
-    env_path = find_file(fname)
+
+    env_path = find_file(fname, start_path=start_path)
     env = os.getenv(key, load_dotenv(env_path))
     if not env:
         raise ValueError(f"cant find env variable '{key}'")
