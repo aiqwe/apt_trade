@@ -52,8 +52,67 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     return message
 
 
-def daily_specific_apt(month: str, date_id: str, apt_contains: list = None):
+def daily_specific_apt(month: str, date_id: str, apt_contains: list = None, filter_new = True):
     df = _prepare_dataframe(month=month, date_id=date_id)
+    if filter_new:
+        df = df[df['신규거래'] == '신규']
+    if apt_contains:
+        df = pd.concat([df[df["아파트명"].str.contains(name)] for name in apt_contains])
+    df["전용면적"] = df["전용면적"].apply(lambda x: f"{int(x)}({int((x / 3.3) + 7)}평)")
+    df["거래금액"] = df["거래금액"].apply(
+        lambda x: f"{round(int(x.replace(',', '')) / 1e4, 2)}억"
+    )
+    cols = [
+        "아파트명",
+        "시군구코드",
+        "법정동",
+        "계약일",
+        "전용면적",
+        "층",
+        "거래금액",
+        "거래유형",
+    ]
+    df = df[cols]
+    df = df.sort_values(["아파트명", "전용면적", "계약일", "층"])
+    data = df[cols].to_dict(orient="records")
+
+    message = Template(TelegramTemplate.DAILY_DIFFERENCE).render(
+        month=f"{str(month)[:4]}-{str(month)[4:]}",
+        date_id=date_id,
+        data=data,
+        len=len
+    )
+    return message
+
+if __name__ == "__main__":
+    this_month = int(datetime.now().strftime("%Y%m"))
+    last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
+    date_id = datetime.now().strftime("%Y-%m-%d")
+    sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+    monthly_chat_id = load_env("TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathDictionary.root)
+    detail_chat_id = load_env("TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathDictionary.root)
+    test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root)
+    block = False
+
+    # batch_manager(
+    #     task_id=get_task_id(__file__, last_month, "monthly"),
+    #     key=date_id,
+    #     func=send,
+    #     if_message=True,
+    #     text=daily_aggregation(last_month, date_id=date_id, sgg_contains=sgg_contains),
+    #     chat_id=test_chat_id,
+    #     block=block,
+    # )
+    # batch_manager(
+    #     task_id=get_task_id(__file__, this_month, "monthly"),
+    #     key=date_id,
+    #     func=send,
+    #     if_message=True,
+    #     text=daily_aggregation(this_month, date_id=date_id, sgg_contains=sgg_contains),
+    #     chat_id=test_chat_id,
+    #     block=block,
+    # )
+
     apt_contains = [
         "헬리오시티",
         "마포래미안푸르지오",
@@ -67,60 +126,22 @@ def daily_specific_apt(month: str, date_id: str, apt_contains: list = None):
         "고덕아르테온",
         "옥수하이츠",
     ]
-    df = pd.concat([df[df["아파트명"].str.contains(name)] for name in apt_contains])
-    df["계약시점"] = (
-        df["계약년도"].astype(str)
-        + "-"
-        + df["계약월"].astype(str).apply(lambda x: x.rjust(2, "0"))
-        + "-"
-        + df["계약일"].astype(str).apply(lambda x: x.rjust(2, "0"))
-    )
-    df["전용면적"] = df["전용면적"].apply(lambda x: f"{int(x)}({int((x / 3.3) + 7)}평)")
-    df["거래금액"] = df["거래금액"].apply(
-        lambda x: f"{round(int(x.replace(',', '')) / 1e4, 2)}억"
-    )
-    cols = [
-        "아파트명",
-        "계약시점",
-        "전용면적",
-        "층",
-        "거래금액",
-        "시군구코드",
-        "법정동",
-        "거래유형",
-        "계약해지사유발생일",
-        "등기일자",
-        "매수자",
-        "매도자",
-    ]
-    df = df[cols]
-    df = df.sort_values(["아파트명", "전용면적", "계약시점", "층"])
-
-
-if __name__ == "__main__":
-    this_month = int(datetime.now().strftime("%Y%m"))
-    last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
-    date_id = datetime.now().strftime("%Y-%m-%d")
-    sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
-    chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathDictionary.root)
-    # chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root)
-    block = True
 
     batch_manager(
-        task_id=get_task_id(__file__, last_month, "daily_status"),
+        task_id=get_task_id(__file__, last_month, "daily_details"),
         key=date_id,
         func=send,
         if_message=True,
-        text=daily_aggregation(last_month, date_id=date_id, sgg_contains=sgg_contains),
-        chat_id=chat_id,
+        text=daily_specific_apt(last_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
+        chat_id=detail_chat_id,
         block=block,
     )
     batch_manager(
-        task_id=get_task_id(__file__, this_month, "daily_status"),
+        task_id=get_task_id(__file__, this_month, "daily_details"),
         key=date_id,
         func=send,
         if_message=True,
-        text=daily_aggregation(this_month, date_id=date_id, sgg_contains=sgg_contains),
-        chat_id=chat_id,
+        text=daily_specific_apt(this_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
+        chat_id=detail_chat_id,
         block=block,
     )

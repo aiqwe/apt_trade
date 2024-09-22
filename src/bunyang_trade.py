@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from utils.utils import get_api_data, get_lawd_cd, parse_xml, batch_manager, get_task_id
 from utils.config import ColumnDictionary, PathDictionary, URLDictionary
-from utils.processing import convert_column, merge_dataframe
+from utils.processing import convert_trade_columns, merge_dataframe, process_trade_columns, generate_new_trade_columns
 
 
 def _sub_task(lawd_cd, deal_ymd):
@@ -62,6 +62,8 @@ def main_task(month: int, date_id: str):
 
     lawd_cd = get_lawd_cd()
     lawd_cd_list = lawd_cd["lawd_cd"].to_list()
+    trade_type = "분양권/입주권"
+
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as p:
         result = list(
             tqdm(
@@ -79,7 +81,7 @@ def main_task(month: int, date_id: str):
     concat["buildYear"] = " "
     concat["rgstDate"] = " "
     concat["tradeGbn"] = "분양권/입주권"
-    concat = convert_column(
+    concat = convert_trade_columns(
         ColumnDictionary.TRADE_DICTIONARY,
         concat,
         include_columns=["date_id"],
@@ -87,7 +89,8 @@ def main_task(month: int, date_id: str):
     )
     concat = concat.replace(" ", np.nan)
 
-    # 시군구코드 -> 시군구명으로
+    # 시군구코드 -> 시군구명으로 변경하기
+    lawd_cd = get_lawd_cd()
     name = lawd_cd["sgg_nm"].to_list()
     code = lawd_cd["lawd_cd"].to_list()
 
@@ -101,15 +104,19 @@ def main_task(month: int, date_id: str):
     if os.path.exists(path):
         logger.info("Data exists. we will merge org and new dataframe")
         exists = pd.read_csv(path)
-        # 실거래만
-        trade = exists[exists['거래구분'] == '분양권/입주권']
         # 이미 소싱했으면 삭제후 추가
-        if len(trade[trade["date_id"] == date_id]) > 0:
+        if len(exists[(exists["date_id"] == date_id) & (exists['거래구분'] == trade_type)]) > 0:
             logger.info(f"{date_id} exists. now removing...")
-            trade = trade[trade["date_id"] != date_id]
+            # 오늘 거래구분만 제거
+            exists = exists[~((exists['거래구분'] == trade_type) & (exists['date_id'] == date_id))]
+        concat = process_trade_columns(concat)
         concat = merge_dataframe(exists, concat)
     else:
         logger.info("Data doesn't exists. we will save new dataframe only")
+        concat = process_trade_columns(concat)
+
+    concat = generate_new_trade_columns(concat)
+    logger.info("generate new trade colunmns")
     concat.to_csv(f"{path}", index=False)
 
     logger.info(f"Save the data in '{path}'")
@@ -119,7 +126,7 @@ if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
-    block=True
+    block=False
 
     batch_manager(
         task_id=get_task_id(__file__, this_month),

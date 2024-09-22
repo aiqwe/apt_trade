@@ -1,5 +1,9 @@
 import pandas as pd
+import numpy as np
 from copy import deepcopy
+from datetime import datetime, timedelta
+from .utils import get_lawd_cd
+from loguru import logger
 
 
 def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
@@ -11,7 +15,7 @@ def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
         )
 
 
-def convert_column(
+def convert_trade_columns(
     dictionary: dict,
     df: pd.DataFrame = None,
     column_name: str = None,
@@ -52,6 +56,74 @@ def convert_column(
         if drop:
             _df = _df[alive]
         return _df
+
+def process_trade_columns(df: pd.DataFrame, date_id: str = None):
+    """
+    1) 계약일 컬럼 추가
+    2) 시군구코드 시군구명으로 변경
+
+    Args:
+        df: 전처리할 데이터프레임
+
+    """
+    if not date_id:
+        date_id = df['date_id'].max()
+
+    _df = deepcopy(df)
+    _df = _df[_df['date_id'] == date_id]
+    logger.info(f"date_id will be processed: {date_id}")
+
+    # 계약일 yyyy-MM-dd 형태로 추가
+    _df.insert(
+        loc=1,
+        column="계약시점",
+        value=_df["계약년도"].astype(str) + "-" + _df["계약월"].astype(str).apply(lambda x: x.rjust(2, "0")) + "-" + _df["계약일"].astype(str).apply(lambda x: x.rjust(2, "0"))
+    )
+    _df = _df.drop(columns=["계약년도", "계약월", "계약일"], axis=0)
+    _df = _df.rename(columns={"계약시점": "계약일"})
+
+    # 시군구코드 -> 시군구명으로 변경하기
+    lawd_cd = get_lawd_cd()
+    name = lawd_cd["sgg_nm"].to_list()
+    code = lawd_cd["lawd_cd"].to_list()
+
+    converter = {}
+    for n, c in zip(name, code):
+        converter.update({int(c): n})
+    _df["시군구코드"] = _df["시군구코드"].apply(lambda x: converter[x] if isinstance(x, int) or x.isdigit() else x)
+
+    return _df
+
+def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
+    """ 신규거래 데이터 생성
+
+    Args:
+        df: 컬럼을 생성할 해당 월의 dataframe
+        date_id: 기준 컬럼
+
+    Returns:
+
+    """
+    if not date_id:
+        date_id = df['date_id'].max()
+
+    _df = deepcopy(df)
+    logger.info(f"date_id will be processed on: {date_id}")
+    prev_date_id = (
+            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
+    ).strftime("%Y-%m-%d")
+
+    _df['seq'] = _df.groupby(["거래구분", "아파트명", "시군구코드", "법정동", "date_id"]).cumcount() + 1
+    _df['pk'] = _df['거래구분'].str[0] + _df['아파트명'] + _df['시군구코드'] + _df['법정동'] + _df['seq'].astype(str).apply(lambda x: x.rjust(5, "0"))
+
+    # 신규거래 만들기
+    _df['신규거래'] = np.where((_df['date_id'] == date_id) & (~_df['pk'].isin(_df[_df['date_id'] == prev_date_id]['pk'])), "신규", "기존")
+    # seq / pk 제거
+    _df = _df.drop(columns=["pk", "seq"], axis=0)
+
+    return _df
+
+
 
 
 def merge_dataframe(org: pd.DataFrame, new: pd.DataFrame):
