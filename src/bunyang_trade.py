@@ -126,7 +126,7 @@ if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
     date_id = datetime.now().strftime("%Y-%m-%d")
-    block=False
+    block=True
 
     batch_manager(
         task_id=get_task_id(__file__, this_month),
