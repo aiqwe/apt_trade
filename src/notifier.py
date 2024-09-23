@@ -138,7 +138,7 @@ if __name__ == "__main__":
         key=date_id,
         func=send,
         if_message=True,
-        text=daily_specific_apt(last_month, date_id=date_id, apt_contains=False, filter_new=True),
+        text=daily_specific_apt(last_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
         chat_id=detail_chat_id,
         block=block,
     )
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         key=date_id,
         func=send,
         if_message=True,
-        text=daily_specific_apt(this_month, date_id=date_id, apt_contains=False, filter_new=True),
+        text=daily_specific_apt(this_month, date_id=date_id, apt_contains=apt_contains, filter_new=True),
         chat_id=detail_chat_id,
         block=block,
     )
