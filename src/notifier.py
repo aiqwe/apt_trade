@@ -38,8 +38,6 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
         .reset_index()
     )
     change = total - last_total
-    sgg_change_agg = df.groupby("시군구코드")[['계약일', '계약해지여부', '신규거래']].count()
-    sgg_change = sgg_change_agg[sgg_change_agg['신규거래'] > 0].reset_index()[['시군구코드', '신규거래']].to_dict(orient="records")
 
     message = Template(TelegramTemplate.DAILY_STATUS).render(
         date_id=date_id,
@@ -50,7 +48,6 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
         apt_trades=agg["계약일"].to_list(),
         new_trades=agg["신규거래"].to_list(),
         apt_trade_cancels=agg["계약해지여부"].to_list(),
-        sgg_change=sgg_change,
         zip=zip,
     )
     return message
