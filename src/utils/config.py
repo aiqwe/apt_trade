@@ -70,7 +70,7 @@ class ColumnDictionary:
     }
 
 class FilterDictionary:
-    sgg_contains: list = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+    sgg_contains: list = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구", "강동구"]
 
     apt_contains: list = [
         "헬리오시티",
