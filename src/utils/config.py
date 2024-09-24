@@ -68,3 +68,20 @@ class ColumnDictionary:
         "umdNm": "법정동",
         "tradeGbn": "거래구분",
     }
+
+class FilterDictionary:
+    sgg_contains: list = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+
+    apt_contains: list = [
+        "헬리오시티",
+        "마포래미안푸르지오",
+        "마포프레스티지자이",
+        "더클래시",
+        "올림픽파크포레온",
+        "잠실엘스",
+        "리센츠",
+        "파크리오",
+        "고덕그라시움",
+        "고덕아르테온",
+        "옥수하이츠",
+    ]

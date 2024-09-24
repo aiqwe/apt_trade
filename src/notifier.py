@@ -4,7 +4,7 @@ from utils.template import TelegramTemplate
 from jinja2 import Template
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from utils.config import PathDictionary
+from utils.config import PathDictionary, FilterDictionary
 import asyncio
 from loguru import logger
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     block = True
 
-    sgg_contains = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구"]
+    sgg_contains = FilterDictionary.sgg_contains
     batch_manager(
         task_id=get_task_id(__file__, last_month, "monthly"),
         key=date_id,
@@ -116,19 +116,7 @@ if __name__ == "__main__":
         block=block,
     )
 
-    apt_contains = [
-        "헬리오시티",
-        "마포래미안푸르지오",
-        "마포프레스티지자이",
-        "더클래시",
-        "올림픽파크포레온",
-        "잠실엘스",
-        "리센츠",
-        "파크리오",
-        "고덕그라시움",
-        "고덕아르테온",
-        "옥수하이츠",
-    ]
+    apt_contains = FilterDictionary.apt_contains
 
     batch_manager(
         task_id=get_task_id(__file__, last_month, "daily_details"),
