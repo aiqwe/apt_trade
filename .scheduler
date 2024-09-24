@@ -1,5 +1,0 @@
-0 9-24/3 * * * $PYTHON_PATH /Users/user/Desktop/study/apt_trade/src/git_pull.py >> /Users/user/Desktop/study/apt_trade/cron.log 2>&1
-1 9-24/3 * * * $PYTHON_PATH /Users/user/Desktop/study/apt_trade/src/apt_trade.py >> /Users/user/Desktop/study/apt_trade/cron.log 2>&1
-2 9-24/3 * * * $PYTHON_PATH /Users/user/Desktop/study/apt_trade/src/bunyang_trade.py >> /Users/user/Desktop/study/apt_trade/cron.log 2>&1
-3 9-24/3 * * * $PYTHON_PATH /Users/user/Desktop/study/apt_trade/src/notifier.py >> /Users/user/Desktop/study/apt_trade/cron.log 2>&1
-4 9-24/3 * * * $PYTHON_PATH /Users/user/Desktop/study/apt_trade/src/git_push.py >> /Users/user/Desktop/study/apt_trade/cron.log 2>&1
