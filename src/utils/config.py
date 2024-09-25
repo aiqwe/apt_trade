@@ -22,11 +22,12 @@ class PathDictionary:
 
 
 class URLDictionary:
-    URL = {
+    URL: dict = {
         "apt_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
         "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
         "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
     }
+    FakeAgent: str = "u'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'"
 
 
 class ColumnDictionary:
@@ -69,8 +70,17 @@ class ColumnDictionary:
         "tradeGbn": "거래구분",
     }
 
+
 class FilterDictionary:
-    sgg_contains: list = ["서초구", "강남구", "송파구", "마포구", "용산구", "성동구", "강동구"]
+    sgg_contains: list = [
+        "서초구",
+        "강남구",
+        "송파구",
+        "마포구",
+        "용산구",
+        "성동구",
+        "강동구",
+    ]
 
     apt_contains: list = [
         "헬리오시티",
@@ -85,3 +95,17 @@ class FilterDictionary:
         "고덕아르테온",
         "옥수하이츠",
     ]
+
+    apt_code: dict = {
+        "헬리오시티": "111515",
+        "마포래미안푸르지오": "104917",
+        "마포프레스티지자이": "121608",
+        "더클래시": "148651",
+        "올림픽파크포레온": "155817",
+        "잠실엘스": "22627",
+        "리센츠": "22746",
+        "파크리오": "22675",
+        "고덕그라시움": "113907",
+        "고덕아르테온": "119341",
+        "옥수하이츠": "564",
+    }

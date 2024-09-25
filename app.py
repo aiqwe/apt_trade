@@ -14,8 +14,8 @@ def get_data(fname):
     return df
 
 
-df_08 = get_data("202408.csv")
-df_09 = get_data("202409.csv")
+df_08 = get_data("trade_202408.csv")
+df_09 = get_data("trade_202409.csv")
 
 st.markdown("# 24년 8월")
 st.dataframe(data=df_08)

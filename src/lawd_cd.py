@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from loguru import logger
 from datetime import datetime
-from utils.utils import get_api_data, batch_manager, get_task_id
+from utils.utils import get_api_data, BatchManager, get_task_id
 from utils.config import URLDictionary
 import json
 
@@ -32,4 +32,5 @@ def main():
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    batch_manager(task_id=get_task_id(__file__), key=date_id, func=main)
+    bm = BatchManager(task_id=get_task_id(__file__), key=date_id)
+    bm(func=main)

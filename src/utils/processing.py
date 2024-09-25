@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from datetime import datetime, timedelta
-from .utils import get_lawd_cd
 from loguru import logger
+
+from .utils import get_lawd_cd
 
 
 def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
@@ -57,6 +58,7 @@ def convert_trade_columns(
             _df = _df[alive]
         return _df
 
+
 def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     """
     1) 계약일 컬럼 추가
@@ -67,17 +69,21 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
 
     """
     if not date_id:
-        date_id = df['date_id'].max()
+        date_id = df["date_id"].max()
 
     _df = deepcopy(df)
-    _df = _df[_df['date_id'] == date_id]
+    _df = _df[_df["date_id"] == date_id]
     logger.info(f"date_id will be processed: {date_id}")
 
     # 계약일 yyyy-MM-dd 형태로 추가
     _df.insert(
         loc=1,
         column="계약시점",
-        value=_df["계약년도"].astype(str) + "-" + _df["계약월"].astype(str).apply(lambda x: x.rjust(2, "0")) + "-" + _df["계약일"].astype(str).apply(lambda x: x.rjust(2, "0"))
+        value=_df["계약년도"].astype(str)
+        + "-"
+        + _df["계약월"].astype(str).apply(lambda x: x.rjust(2, "0"))
+        + "-"
+        + _df["계약일"].astype(str).apply(lambda x: x.rjust(2, "0")),
     )
     _df = _df.drop(columns=["계약년도", "계약월", "계약일"], axis=0)
     _df = _df.rename(columns={"계약시점": "계약일"})
@@ -91,16 +97,21 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     converter = {}
     for n, c in zip(name, code):
         converter.update({int(c): n})
-    _df["시군구코드"] = _df["시군구코드"].apply(lambda x: converter[x] if isinstance(x, int) or x.isdigit() else x)
+    _df["시군구코드"] = _df["시군구코드"].apply(
+        lambda x: converter[x] if isinstance(x, int) or x.isdigit() else x
+    )
     logger.info("Completed converting '시군구코드' column.")
 
-    _df['신규거래'] = np.nan
-    logger.info("Completed generating temporary '신규거래' column with filling in 'np.nan'")
+    _df["신규거래"] = np.nan
+    logger.info(
+        "Completed generating temporary '신규거래' column with filling in 'np.nan'"
+    )
 
     return _df
 
+
 def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
-    """ 신규거래 데이터 생성
+    """신규거래 데이터 생성
 
     Args:
         df: 컬럼을 생성할 해당 월의 dataframe
@@ -110,27 +121,41 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
 
     """
     if not date_id:
-        date_id = df['date_id'].max()
+        date_id = df["date_id"].max()
 
     _df = deepcopy(df)
     logger.info(f"date_id will be processed on: {date_id}")
     prev_date_id = (
-            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
+        datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
-    logger.info('generating seq, pk columns')
-    _df['seq'] = _df.groupby(["거래구분", "아파트명", "시군구코드", "법정동", "date_id"]).cumcount() + 1
-    _df['pk'] = _df['거래구분'].str[0] + _df['아파트명'] + _df['시군구코드'] + _df['법정동'] + _df['seq'].astype(str).apply(lambda x: x.rjust(5, "0"))
+    logger.info("generating seq, pk columns")
+    _df["seq"] = (
+        _df.groupby(
+            ["거래구분", "아파트명", "시군구코드", "법정동", "date_id"]
+        ).cumcount()
+        + 1
+    )
+    _df["pk"] = (
+        _df["거래구분"].str[0]
+        + _df["아파트명"]
+        + _df["시군구코드"]
+        + _df["법정동"]
+        + _df["seq"].astype(str).apply(lambda x: x.rjust(5, "0"))
+    )
 
     # 신규거래 만들기
-    _df['신규거래'] = np.where((_df['date_id'] == date_id) & (~_df['pk'].isin(_df[_df['date_id'] == prev_date_id]['pk'])), "신규", np.nan)
+    _df["신규거래"] = np.where(
+        (_df["date_id"] == date_id)
+        & (~_df["pk"].isin(_df[_df["date_id"] == prev_date_id]["pk"])),
+        "신규",
+        np.nan,
+    )
     logger.info("updated '신규거래' columns")
     # seq / pk 제거
     _df = _df.drop(columns=["pk", "seq"], axis=0)
-    logger.info('dropped seq, pk columns')
+    logger.info("dropped seq, pk columns")
 
     return _df
-
-
 
 
 def merge_dataframe(org: pd.DataFrame, new: pd.DataFrame):
@@ -167,3 +192,51 @@ def delete_latest_history(
     _org = _org[~_org[date_column].str.contains(last_month)]
     _org = _org[~_org[date_column].str.contains(this_month)]
     return _org
+
+
+def process_apt2me_table(df):
+    processed = pd.DataFrame()
+
+    processed["확인날짜"] = df[df.columns[0]].apply(lambda x: x.split(" ")[0])
+    processed["확인날짜"] = processed["확인날짜"].apply(
+        lambda x: f"{x[:4]}-{x[4:6]}-{x[6:]}"
+    )
+    processed["전용면적"] = df[df.columns[0]].apply(
+        lambda x: x.split(" ")[1].split("/")[0]
+    )
+    processed["전용면적"] = (
+        processed["전용면적"]
+        .astype(float)
+        .apply(lambda x: f"{int(x)}({int((x / 3.3) + 7)}평)")
+    )
+
+    processed["가격"] = df[df.columns[1]].apply(lambda x: x.split(" ")[0])
+    processed["동"] = df[df.columns[1]].apply(lambda x: x.split(" ")[2].split("/")[0])
+    processed["층"] = df[df.columns[1]].apply(
+        lambda x: x.split(" ")[2].split("/")[1] + "층"
+    )
+    processed["총층수"] = df[df.columns[1]].apply(
+        lambda x: x.split(" ")[2].split("/")[2] + "층"
+    )
+    processed["방향"] = df[df.columns[1]].apply(lambda x: x.split(" ")[2].split("/")[3])
+
+    return processed
+
+
+def process_sales_column(df):
+    prev_7day = (
+        datetime.strptime(df["확인날짜"].max(), "%Y-%m-%d") - timedelta(days=7)
+    ).strftime("%Y-%m-%d")
+    data = df[df["확인날짜"] >= prev_7day]
+
+    def _convert_number(string):
+        max_length = 10
+        pad = max_length - len(string)
+        return int(string + "0" * pad)
+
+    data["price"] = data["가격"].apply(
+        lambda x: _convert_number(x.split("억")[0] + x.split("억")[-1].split("천")[0])
+    )
+    data["floor"] = data["층"].apply(lambda x: x.split("층")[0])
+
+    return data

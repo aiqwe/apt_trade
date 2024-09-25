@@ -2,18 +2,18 @@ import os
 import requests
 import asyncio
 from io import StringIO
+from datetime import datetime
 
 import pandas as pd
 import telegram
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from loguru import logger
-
-from .config import PathDictionary
+from .config import PathDictionary, FilterDictionary, URLDictionary
 from .metastore import Metastore
 
 
-def load_env(key: str, fname=".env", start_path=None):
+def load_env(key: str = None, fname=".env", start_path=None):
     """1) 환경변수 설정이 되었는지 검색하고, 2) 설정값이 없으면 환경변수가 정의된 파일을찾는다
     Args:
         key: 검색할 환경변수 키
@@ -23,7 +23,10 @@ def load_env(key: str, fname=".env", start_path=None):
     """
 
     env_path = find_file(fname, start_path=start_path)
-    env = os.getenv(key, load_dotenv(env_path))
+    if isinstance(env_path, list) and len(env_path) > 1:
+        raise ValueError(f"{env_path=}\ntwo files detected. please make unique file")
+    load_dotenv(env_path)
+    env = os.getenv(key, None)
     if not env:
         raise ValueError(f"cant find env variable '{key}'")
     return env
@@ -142,6 +145,79 @@ def get_task_id(file_dunder: str, *args):
     return f"{basename}_{'_'.join(str(arg) for arg in args)}"
 
 
+class BatchManager:
+    """metastore에 실행되었는지 확인후, 실행되지 않았으면 func을 실행하는 데코레이터
+
+    Args:
+        task_id: metastore에서 체크할 task_id, get_task_id 함수로 생성
+        key: metastore의 key
+        func: 실행할 함수
+        if_message: telegram 메세지인 경우 True(async 사용 때문)
+    """
+
+    def __init__(self, task_id: str, key: str = None, if_message=False, block=True):
+        if not key:
+            key = datetime.now().strftime("%Y-%m-%d")
+        self.key = key
+        self.task_id = task_id
+        self.if_message = if_message
+        self.block = block
+
+    def __call__(self, func, *args, **kwargs):
+        if self.block:
+            meta = Metastore()
+            if not meta[self.key]:
+                meta.setdefault(self.key, [])
+                meta.commit()
+                print(meta[self.key])
+            if self.task_id in meta[self.key]:
+                logger.info(f"{self.task_id} already executed.")
+                return
+            else:
+                try:
+                    meta.add(key=self.key, value=self.task_id)
+                    if self.if_message:
+                        asyncio.run(
+                            send(
+                                text=kwargs.get("text", None),
+                                chat_id=kwargs.get("chat_id", None),
+                                token=kwargs.get("token", None),
+                            )
+                        )
+                    else:
+                        func(*args, **kwargs)
+                except Exception as e:
+                    logger.error(repr(e))
+                    asyncio.run(
+                        send_log(
+                            text=repr(e),
+                            chat_id=kwargs.get("chat_id", None),
+                            token=kwargs.get("token", None),
+                        )
+                    )
+        else:
+            try:
+                if self.if_message:
+                    asyncio.run(
+                        send(
+                            text=kwargs.get("text", None),
+                            chat_id=kwargs.get("chat_id", None),
+                            token=kwargs.get("token", None),
+                        )
+                    )
+                else:
+                    func(*args, **kwargs)
+            except Exception as e:
+                logger.error(repr(e))
+                asyncio.run(
+                    send_log(
+                        text=repr(e),
+                        chat_id=kwargs.get("chat_id", None),
+                        token=kwargs.get("token", None),
+                    )
+                )
+
+
 def batch_manager(
     task_id: str, key: str, func, if_message=False, block=True, *args, **kwargs
 ):
@@ -239,3 +315,19 @@ async def send_log(text: str, chat_id: str = None, token: str = None):
         )
     bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
+
+
+def get_chat_id(token: str):
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
+    response = requests.get(url)
+    return response
+
+
+def get_aptme_html(apt_name: str):
+    jun_size = "84"
+    url = f"https://apt2.me/apt/AptSellDanji.jsp?aptCode={FilterDictionary.apt_code[apt_name]}&jun_size={jun_size}"
+
+    headers = {"User-Agent": URLDictionary.FakeAgent}
+    response = requests.get(url, headers=headers)
+
+    return response

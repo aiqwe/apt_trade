@@ -1,5 +1,5 @@
 from utils.config import PathDictionary
-from utils.utils import batch_manager, get_task_id
+from utils.utils import BatchManager, get_task_id
 from git import Repo
 from loguru import logger
 from datetime import datetime
@@ -15,6 +15,6 @@ def git_pull():
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    batch_manager(
-        task_id=get_task_id(__file__), key=date_id, func=git_pull, date_id=date_id
-    )
+
+    bm = BatchManager(task_id=get_task_id(__file__), key=date_id)
+    bm(func=git_pull)

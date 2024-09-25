@@ -9,9 +9,13 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 
-from utils.utils import get_api_data, get_lawd_cd, parse_xml, batch_manager, get_task_id
+from utils.utils import get_api_data, get_lawd_cd, parse_xml, get_task_id, BatchManager
 from utils.config import ColumnDictionary, PathDictionary, URLDictionary
-from utils.processing import convert_trade_columns, merge_dataframe, process_trade_columns
+from utils.processing import (
+    convert_trade_columns,
+    merge_dataframe,
+    process_trade_columns,
+)
 
 
 def _sub_task(lawd_cd, deal_ymd):
@@ -87,16 +91,25 @@ def main_task(month: int, date_id: str):
     )
     concat = concat.replace(" ", np.nan)
 
-    path = os.path.join(PathDictionary.snapshot, f"{month}.csv")
+    path = os.path.join(PathDictionary.snapshot, f"trade_{month}.csv")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if os.path.exists(path):
         logger.info("Data exists. we will merge org and new dataframe")
         exists = pd.read_csv(path)
         # 이미 소싱했으면 삭제후 추가
-        if len(exists[(exists["date_id"] == date_id) & (exists['거래구분'] == trade_type)]) > 0:
+        if (
+            len(
+                exists[
+                    (exists["date_id"] == date_id) & (exists["거래구분"] == trade_type)
+                ]
+            )
+            > 0
+        ):
             logger.info(f"{date_id} exists. now removing...")
             # 오늘 거래구분만 제거
-            exists = exists[~((exists['거래구분'] == trade_type) & (exists['date_id'] == date_id))]
+            exists = exists[
+                ~((exists["거래구분"] == trade_type) & (exists["date_id"] == date_id))
+            ]
         concat = process_trade_columns(concat)
         concat = merge_dataframe(exists, concat)
     else:
@@ -114,19 +127,11 @@ if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
     block = True
 
-    batch_manager(
-        task_id=get_task_id(__file__, this_month),
-        key=date_id,
-        func=main_task,
-        month=last_month,
-        date_id=date_id,
-        block=block
+    bm = BatchManager(
+        task_id=get_task_id(__file__, this_month), key=date_id, block=block
     )
-    batch_manager(
-        task_id=get_task_id(__file__, last_month),
-        key=date_id,
-        func=main_task,
-        month=this_month,
-        date_id=date_id,
-        block=block
+    bm(func=main_task, month=last_month, date_id=date_id)
+    bm = BatchManager(
+        task_id=get_task_id(__file__, last_month), key=date_id, block=block
     )
+    bm(func=main_task, month=this_month, date_id=date_id)
