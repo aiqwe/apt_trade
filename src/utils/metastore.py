@@ -86,3 +86,7 @@ class Metastore:
         with self.db as db:
             db.setdefault(key, value)
             db.commit()
+
+    def clear(self):
+        self.db.clear()
+        self.commit()

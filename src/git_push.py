@@ -20,4 +20,4 @@ if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id)
-    bm(func=git_push)
+    bm(func=git_push, date_id=date_id)
