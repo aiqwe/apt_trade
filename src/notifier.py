@@ -166,7 +166,7 @@ if __name__ == "__main__":
     for month in [last_month, this_month]:
         task_id = get_task_id(__file__, month, "monthly")
         msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
-        chat_id = test_chat_id
+        chat_id = monthly_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
         bm(func=send, text=msg, chat_id=chat_id)
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         msg = daily_specific_apt(
             month, date_id=date_id, apt_contains=apt_contains, filter_new=True
         )
-        chat_id = test_chat_id
+        chat_id = detail_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
         bm(func=send, text=msg, chat_id=chat_id)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     # 매물 집계
     task_id = get_task_id(__file__, this_month, "sales_monthly")
     msg = sales_aggregation(month=this_month, date_id=date_id)
-    chat_id = test_chat_id
+    chat_id = monthly_chat_id
 
     bm = BatchManager(task_id=task_id, if_message=True, block=block)
     bm(func=send, text=msg, chat_id=chat_id)
