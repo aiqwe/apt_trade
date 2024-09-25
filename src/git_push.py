@@ -18,6 +18,8 @@ def git_push(date_id: str):
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
+    mode = "test"
+    block = False if mode == "test" else True
 
-    bm = BatchManager(task_id=get_task_id(__file__), key=date_id)
+    bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
     bm(func=git_push, date_id=date_id)

@@ -179,7 +179,7 @@ class BatchManager:
                     meta.add(key=self.key, value=self.task_id)
                     if self.if_message:
                         asyncio.run(
-                            send(
+                            send_message(
                                 text=kwargs.get("text", None),
                                 chat_id=kwargs.get("chat_id", None),
                                 token=kwargs.get("token", None),
@@ -200,7 +200,7 @@ class BatchManager:
             try:
                 if self.if_message:
                     asyncio.run(
-                        send(
+                        send_message(
                             text=kwargs.get("text", None),
                             chat_id=kwargs.get("chat_id", None),
                             token=kwargs.get("token", None),
@@ -246,7 +246,7 @@ def batch_manager(
                 meta.add(key=key, value=task_id)
                 if if_message:
                     asyncio.run(
-                        send(
+                        send_message(
                             text=kwargs.get("text", None),
                             chat_id=kwargs.get("chat_id", None),
                             token=kwargs.get("token", None),
@@ -267,7 +267,7 @@ def batch_manager(
         try:
             if if_message:
                 asyncio.run(
-                    send(
+                    send_message(
                         text=kwargs.get("text", None),
                         chat_id=kwargs.get("chat_id", None),
                         token=kwargs.get("token", None),
@@ -286,7 +286,7 @@ def batch_manager(
             )
 
 
-async def send(text: str, chat_id: str = None, token: str = None):
+async def send_message(text: str, chat_id: str = None, token: str = None):
     """telegram chat_id로 메세지 전송
     Args:
         text: 전송할 메세지

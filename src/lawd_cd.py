@@ -32,5 +32,8 @@ def main():
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    bm = BatchManager(task_id=get_task_id(__file__), key=date_id)
+    mode = "test"
+    block = False if mode == "test" else True
+
+    bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
     bm(func=main)

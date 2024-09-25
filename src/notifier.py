@@ -1,6 +1,13 @@
 import pandas as pd
 from copy import deepcopy
-from utils.utils import find_file, send, send_log, BatchManager, get_task_id, load_env
+from utils.utils import (
+    find_file,
+    send_message,
+    send_log,
+    BatchManager,
+    get_task_id,
+    load_env,
+)
 from utils.template import TelegramTemplate
 from utils.processing import process_sales_column
 from jinja2 import Template
@@ -122,6 +129,8 @@ def sales_aggregation(month, date_id):
     this_data = this_data.to_dict(orient="records")
 
     # 전일과 비교
+    df = _prepare_dataframe(fname=f"sales_{month}.csv", date_id=date_id)
+    df = process_sales_column(df)
     prev = _agg(df, prev_date_id)
     merged = this.merge(prev, how="left", on="단지명")
 
@@ -156,8 +165,8 @@ if __name__ == "__main__":
     test_chat_id = load_env(
         "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root
     )
-
-    block = True
+    mode = "test"
+    block = False if mode == "test" else True
 
     sgg_contains = FilterDictionary.sgg_contains
     apt_contains = FilterDictionary.apt_contains
@@ -166,10 +175,10 @@ if __name__ == "__main__":
     for month in [last_month, this_month]:
         task_id = get_task_id(__file__, month, "monthly")
         msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
-        chat_id = monthly_chat_id
+        chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
-        bm(func=send, text=msg, chat_id=chat_id)
+        bm(func=send_message, text=msg, chat_id=chat_id)
 
     # 신규 거래
     for month in [last_month, this_month]:
@@ -177,15 +186,15 @@ if __name__ == "__main__":
         msg = daily_specific_apt(
             month, date_id=date_id, apt_contains=apt_contains, filter_new=True
         )
-        chat_id = detail_chat_id
+        chat_id = test_chat_id if mode == "test" else detail_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
-        bm(func=send, text=msg, chat_id=chat_id)
+        bm(func=send_message, text=msg, chat_id=chat_id)
 
     # 매물 집계
     task_id = get_task_id(__file__, this_month, "sales_monthly")
     msg = sales_aggregation(month=this_month, date_id=date_id)
-    chat_id = monthly_chat_id
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, if_message=True, block=block)
-    bm(func=send, text=msg, chat_id=chat_id)
+    bm(func=send_message, text=msg, chat_id=chat_id)
