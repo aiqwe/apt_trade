@@ -6,15 +6,16 @@ from datetime import datetime
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from io import StringIO
+from functools import partial
 
 from utils.utils import get_task_id, get_aptme_html, BatchManager
 from utils.config import PathDictionary, FilterDictionary
 from utils.processing import merge_dataframe, process_apt2me_table
 
 
-def _sub_task(apt_name):
+def _sub_task(apt_name, trade_type):
     logger.info(f"{apt_name} START")
-    response = get_aptme_html(apt_name)
+    response = get_aptme_html(apt_name, trade_type=trade_type)
     soup = BeautifulSoup(response.text, "html")
     tables = soup.find_all("table")
     if len(tables) == 0:
@@ -30,7 +31,7 @@ def _sub_task(apt_name):
     return result
 
 
-def main_task(apt_contains: list = None, date_id=None):
+def main_task(apt_contains: list = None, date_id=None, trade_type=None):
     """apt_contains에 포함된 매물정보를 apt2me에서 가져옴
     https://apt2.me/apt/AptSellDanji.jsp?aptCode=111515&jun_size=84 방식으로 가져옴
 
@@ -54,13 +55,14 @@ def main_task(apt_contains: list = None, date_id=None):
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as p:
         result = list(
             tqdm(
-                p.map(_sub_task, apt_contains),
+                p.map(partial(_sub_task, trade_type=trade_type), apt_contains),
                 total=len(apt_contains),
             )
         )
     result = [ele for ele in result if ele is not None]
     concat = pd.concat(result)
     concat["date_id"] = date_id
+    concat["거래구분"] = trade_type
 
     path = os.path.join(PathDictionary.snapshot, f"sales_{month}.csv")
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -68,14 +70,23 @@ def main_task(apt_contains: list = None, date_id=None):
         logger.info("Data exists. we will merge org and new dataframe")
         exists = pd.read_csv(path)
         # 이미 소싱했으면 삭제후 추가
-        if len(exists[(exists["date_id"] == date_id)]) > 0:
+        if (
+            len(
+                exists[
+                    (exists["date_id"] == date_id) & (exists["거래구분"] == trade_type)
+                ]
+            )
+            > 0
+        ):
             logger.info(f"{date_id} exists. now removing...")
             # 오늘 거래구분만 제거
-            exists = exists[exists["date_id"] != date_id]
+            exists = exists[
+                ~((exists["거래구분"] == trade_type) & (exists["date_id"] == date_id))
+            ]
         concat = merge_dataframe(exists, concat)
     else:
         logger.info("Data doesn't exists. we will save new dataframe only")
-    concat.to_csv(path, index=False)
+    concat.to_csv(f"{path}", index=False)
 
     logger.info(f"Save the data in '{path}'")
 
@@ -86,4 +97,5 @@ if __name__ == "__main__":
     block = False
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
-    bm(main_task)
+    bm(main_task, trade_type="아파트")
+    bm(main_task, trade_type="분양권")

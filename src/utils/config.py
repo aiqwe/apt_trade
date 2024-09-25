@@ -26,6 +26,8 @@ class URLDictionary:
         "apt_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
         "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
         "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
+        "아파트": "https://apt2.me/apt/AptSellDanji.jsp",
+        "분양권": "https://apt2.me/apt/BunSellDanji.jsp",
     }
     FakeAgent: str = "u'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'"
 

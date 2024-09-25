@@ -3,6 +3,7 @@ import requests
 import asyncio
 from io import StringIO
 from datetime import datetime
+from typing import Literal
 
 import pandas as pd
 import telegram
@@ -323,9 +324,15 @@ def get_chat_id(token: str):
     return response
 
 
-def get_aptme_html(apt_name: str):
+def get_aptme_html(apt_name: str, trade_type: Literal["아파트", "분양권"] = None):
+    if not trade_type:
+        raise ValueError(
+            f"{trade_type=}\n sales_type should be one of 'apt_sales', 'bunyang_sales'"
+        )
+
+    url = URLDictionary.URL[trade_type]
     jun_size = "84"
-    url = f"https://apt2.me/apt/AptSellDanji.jsp?aptCode={FilterDictionary.apt_code[apt_name]}&jun_size={jun_size}"
+    url = url + f"?aptCode={FilterDictionary.apt_code[apt_name]}&jun_size={jun_size}"
 
     headers = {"User-Agent": URLDictionary.FakeAgent}
     response = requests.get(url, headers=headers)

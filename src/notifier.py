@@ -30,7 +30,7 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     ).strftime("%Y-%m-%d")
 
     df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=date_id)
-    last_df = _prepare_dataframe(month=month, date_id=prev_date_id)
+    last_df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=prev_date_id)
     total = df["계약일"].count()
     last_total = last_df["계약일"].count()
     agg = (
@@ -58,7 +58,7 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
 def daily_specific_apt(
     month: str, date_id: str, apt_contains: list = None, filter_new=True
 ):
-    df = _prepare_dataframe(month=month, date_id=date_id)
+    df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=date_id)
     if filter_new:
         df = df[df["신규거래"] == "신규"]
     if apt_contains:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     for month in [last_month, this_month]:
         task_id = get_task_id(__file__, month, "monthly")
         msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
-        chat_id = test_chat_id
+        chat_id = monthly_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
         bm(func=send, text=msg, chat_id=chat_id)
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         msg = daily_specific_apt(
             month, date_id=date_id, apt_contains=apt_contains, filter_new=True
         )
-        chat_id = test_chat_id
+        chat_id = detail_chat_id
 
         bm = BatchManager(task_id=task_id, if_message=True, block=block)
         bm(func=send, text=msg, chat_id=chat_id)
