@@ -167,3 +167,5 @@ notebook.ipynb
 .scheduler_local
 .scheduler
 cron.log
+.DS_Store
+**/.DS_Store
