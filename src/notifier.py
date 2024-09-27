@@ -165,7 +165,7 @@ if __name__ == "__main__":
     test_chat_id = load_env(
         "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root
     )
-    mode = "test"
+    mode = "prod"
     block = False if mode == "test" else True
 
     sgg_contains = FilterDictionary.sgg_contains
