@@ -170,7 +170,6 @@ class BatchManager:
             if not meta[self.key]:
                 meta.setdefault(self.key, [])
                 meta.commit()
-                print(meta[self.key])
             if self.task_id in meta[self.key]:
                 logger.info(f"{self.task_id} already executed.")
                 return
@@ -237,7 +236,6 @@ def batch_manager(
         if not meta[key]:
             meta.setdefault(key, [])
             meta.commit()
-            print(meta[key])
         if task_id in meta[key]:
             logger.info(f"{task_id} already executed.")
             return
