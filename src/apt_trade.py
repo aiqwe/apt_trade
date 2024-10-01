@@ -9,14 +9,19 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 
-from utils.utils import get_api_data, get_lawd_cd, parse_xml, get_task_id, BatchManager
-from utils.config import ColumnDictionary, PathDictionary, URLDictionary
-from utils.processing import (
+from utils import (
+    get_public_api_data,
+    get_lawd_cd,
+    parse_xml,
+    get_task_id,
+    BatchManager,
+    ColumnConfig,
+    PathConfig,
     convert_trade_columns,
-    merge_dataframe,
     process_trade_columns,
+    generate_new_trade_columns,
+    SchemaConfig
 )
-
 
 def _sub_task(lawd_cd, deal_ymd):
     # API Parameters
@@ -25,8 +30,8 @@ def _sub_task(lawd_cd, deal_ymd):
     # DEAL_YMD
     # pageNo
     # numOfRows
-    sentinel = get_api_data(
-        base_url=URLDictionary.URL["apt_trade"],
+    sentinel = get_public_api_data(
+        url_key="아파트실거래",
         LAWD_CD=lawd_cd,
         DEAL_YMD=deal_ymd,
         pageNo=1,
@@ -38,8 +43,8 @@ def _sub_task(lawd_cd, deal_ymd):
 
     if total_cnt > 0:
         for i in range(1, iteration + 1):
-            response = get_api_data(
-                base_url=URLDictionary.URL["apt_trade"],
+            response = get_public_api_data(
+                url_key="아파트실거래",
                 LAWD_CD=lawd_cd,
                 DEAL_YMD=deal_ymd,
                 pageNo=i,
@@ -78,54 +83,48 @@ def main_task(month: int, date_id: str):
             )
         )
     result = [ele for ele in result if ele is not None]
+    logger.info("Concat results...")
+    if not result:
+        logger.info(f"No data in {month}")
+        return
     concat = pd.concat(result)
+    month = str(month)
     concat["date_id"] = date_id
+    concat["month_id"] = str(month)
 
+    # 데이터 전처리 부분
     concat["ownershipGbn"] = " "
     concat["tradeGbn"] = trade_type
     concat = convert_trade_columns(
-        ColumnDictionary.TRADE_DICTIONARY,
+        ColumnConfig.TRADE_DICTIONARY,
         concat,
-        include_columns=["date_id"],
+        include_columns=["month_id", "date_id"],
         sort=True,
     )
     concat = concat.replace(" ", np.nan)
-
-    path = os.path.join(PathDictionary.snapshot, f"trade_{month}.csv")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if os.path.exists(path):
-        logger.info("Data exists. we will merge org and new dataframe")
-        exists = pd.read_csv(path)
-        # 이미 소싱했으면 삭제후 추가
-        if (
-            len(
-                exists[
-                    (exists["date_id"] == date_id) & (exists["거래구분"] == trade_type)
-                ]
-            )
-            > 0
-        ):
-            logger.info(f"{date_id} exists. now removing...")
-            # 오늘 거래구분만 제거
-            exists = exists[
-                ~((exists["거래구분"] == trade_type) & (exists["date_id"] == date_id))
-            ]
-        concat = process_trade_columns(concat)
-        concat = merge_dataframe(exists, concat)
-    else:
-        logger.info("Data doesn't exists. we will save new dataframe only")
-        concat = process_trade_columns(concat)
-    concat.to_csv(f"{path}", index=False)
-
-    logger.info(f"Save the data in '{path}'")
-
+    concat = process_trade_columns(concat)
+    concat["건축년도"] = concat["건축년도"].apply(lambda x: str(int(x)))
+    concat = generate_new_trade_columns(concat)
+    logger.info("processing columns completed")
+    # 스키마 일치
+    concat = concat[list(SchemaConfig.trade.keys())]
+    concat = concat.astype(SchemaConfig.trade)
+    # Parquet로 Overwrite 저장
+    path = PathConfig.trade
+    concat.to_parquet(path=path, engine="pyarrow", partition_cols=["month_id", "date_id"], existing_data_behavior="delete_matching")
+    logger.info(f"Save the data in '{path}/month_id={month}/date_id={date_id}'")
 
 # TODO: history 추가
 if __name__ == "__main__":
-    this_month = int(datetime.now().strftime("%Y%m"))
-    last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
+    this_month = datetime.now().strftime("%Y%m")
+    last_month = (datetime.now() - relativedelta(months=1)).strftime("%Y%m")
+    # 1일이면 해당 월이 아니라 직전월 데이터를 가져옴
+    if datetime.now().day == 1:
+        this_month = (datetime.now() - relativedelta(months=1)).strftime("%Y%m")
+        last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
+
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "test"
+    mode = "prod"
     block = False if mode == "test" else True
 
     bm = BatchManager(

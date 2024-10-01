@@ -4,13 +4,13 @@ from datetime import datetime
 
 from sqlitedict import SqliteDict
 
-from .config import PathDictionary
+from .config import PathConfig
 
 
 class Metastore:
     def __init__(self, dbpath: str = None):
         if not dbpath:
-            dbpath = os.path.join(PathDictionary.metastore, "metastore.sqlite")
+            dbpath = os.path.join(PathConfig.metastore, "metastore.sqlite")
         self.dbpath = dbpath
 
     @property

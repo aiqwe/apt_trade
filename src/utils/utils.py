@@ -3,14 +3,13 @@ import requests
 import asyncio
 from io import StringIO
 from datetime import datetime
-from typing import Literal
 
-import pandas as pd
 import telegram
+import pandas as pd
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from loguru import logger
-from .config import PathDictionary, FilterDictionary, URLDictionary
+from .config import PathConfig
 from .metastore import Metastore
 
 
@@ -32,35 +31,6 @@ def load_env(key: str = None, fname=".env", start_path=None):
         raise ValueError(f"cant find env variable '{key}'")
     return env
 
-
-def get_api_data(base_url: str = None, serviceKey: str = None, **params):
-    """공공데이터에서 Request 함수처리
-
-    Args:
-        serviceKey: 발급받은 인증키
-        base_url: API의 엔트리포인트 URL
-        params:
-            LAWD_CD: 법정동코드
-            DEAL_YMD: 거래 연월 YYYYMM
-            pageNo: 페이지 수
-            numOfRows: Row 수
-    """
-    if not serviceKey:
-        serviceKey = load_env(key="PUBLIC_DATA_API_KEY", fname=".env")
-
-    if params:
-        url = (
-            base_url
-            + f"?serviceKey={serviceKey}&"
-            + "&".join(f"{k}={v}" for k, v in params.items())
-        )
-    else:
-        url = base_url + f"?serviceKey={serviceKey}"
-
-    response = requests.get(url)
-    return response
-
-
 def parse_xml(response: str, tag):
     """xml 데이터를 파싱해서 Pandas DataFrame으로 반환
 
@@ -71,16 +41,6 @@ def parse_xml(response: str, tag):
     soup = BeautifulSoup(response, "xml")
     data = soup.findAll(tag)[0].decode()
     return pd.read_xml(StringIO(data))
-
-
-def parse_dict(data: dict):
-    """dictionary 타입의 데이터를 pandas DataFrame으로 변환
-
-    Args:
-        data: 변환하려는 dict값
-    """
-    return pd.DataFrame.from_dict(data)
-
 
 def get_lawd_cd(fname: str = "lawd_cd.csv"):
     """법정동코드를 다운받아서 서울특별시 코드 5자리만 파싱
@@ -119,7 +79,7 @@ def find_file(fname: str, start_path: str = None):
 
     """
     if not start_path:
-        start_path = PathDictionary.root  # root = apt_trade
+        start_path = PathConfig.root  # root = apt_trade
     if not os.path.exists(start_path):
         raise ValueError(f"{start_path} does not exists.")
 
@@ -217,87 +177,14 @@ class BatchManager:
                     )
                 )
 
-
-def batch_manager(
-    task_id: str, key: str, func, if_message=False, block=True, *args, **kwargs
-):
-    """metastore에 실행되었는지 확인후, 실행되지 않았으면 func을 실행
-
+def get_chat_id(token: str):
+    """ bot의 getUpdates를 get함으로써 chat_id 정보를 얻어내기
     Args:
-        task_id: metastore에서 체크할 task_id, get_task_id 함수로 생성
-        key: metastore의 key
-        func: 실행할 함수
-        if_message: telegram 메세지인 경우 True(async 사용 때문)
-        *args: func에 전달될 인수
-        **kwargs: func에 전달될 인수
+        token: Telegram Bot Token
     """
-    if block:
-        meta = Metastore()
-        if not meta[key]:
-            meta.setdefault(key, [])
-            meta.commit()
-        if task_id in meta[key]:
-            logger.info(f"{task_id} already executed.")
-            return
-        else:
-            try:
-                meta.add(key=key, value=task_id)
-                if if_message:
-                    asyncio.run(
-                        send_message(
-                            text=kwargs.get("text", None),
-                            chat_id=kwargs.get("chat_id", None),
-                            token=kwargs.get("token", None),
-                        )
-                    )
-                else:
-                    func(*args, **kwargs)
-            except Exception as e:
-                logger.error(repr(e))
-                asyncio.run(
-                    send_log(
-                        text=repr(e),
-                        chat_id=kwargs.get("chat_id", None),
-                        token=kwargs.get("token", None),
-                    )
-                )
-    else:
-        try:
-            if if_message:
-                asyncio.run(
-                    send_message(
-                        text=kwargs.get("text", None),
-                        chat_id=kwargs.get("chat_id", None),
-                        token=kwargs.get("token", None),
-                    )
-                )
-            else:
-                func(*args, **kwargs)
-        except Exception as e:
-            logger.error(repr(e))
-            asyncio.run(
-                send_log(
-                    text=repr(e),
-                    chat_id=kwargs.get("chat_id", None),
-                    token=kwargs.get("token", None),
-                )
-            )
-
-
-async def send_message(text: str, chat_id: str = None, token: str = None):
-    """telegram chat_id로 메세지 전송
-    Args:
-        text: 전송할 메세지
-        chat_id: telegram channel id
-        token: bot의 token
-    """
-    if not token:
-        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathDictionary.root)
-    if not chat_id:
-        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathDictionary.root)
-    bot = telegram.Bot(token=token)
-    await bot.send_message(chat_id=chat_id, text=text)
-
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
+    response = requests.get(url)
+    return response
 
 async def send_log(text: str, chat_id: str = None, token: str = None):
     """telegram chat_id로 메세지 전송
@@ -307,32 +194,24 @@ async def send_log(text: str, chat_id: str = None, token: str = None):
         token: bot의 token
     """
     if not token:
-        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathDictionary.root)
+        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
     if not chat_id:
         chat_id = load_env(
-            "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root
+            "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root
         )
     bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
 
-
-def get_chat_id(token: str):
-    url = f"https://api.telegram.org/bot{token}/getUpdates"
-    response = requests.get(url)
-    return response
-
-
-def get_aptme_html(apt_name: str, trade_type: Literal["아파트", "분양권"] = None):
-    if not trade_type:
-        raise ValueError(
-            f"{trade_type=}\n sales_type should be one of 'apt_sales', 'bunyang_sales'"
-        )
-
-    url = URLDictionary.URL[trade_type]
-    jun_size = "84"
-    url = url + f"?aptCode={FilterDictionary.apt_code[apt_name]}&jun_size={jun_size}"
-
-    headers = {"User-Agent": URLDictionary.FakeAgent}
-    response = requests.get(url, headers=headers)
-
-    return response
+async def send_message(text: str, chat_id: str = None, token: str = None):
+    """telegram chat_id로 메세지 전송
+    Args:
+        text: 전송할 메세지
+        chat_id: telegram channel id
+        token: bot의 token
+    """
+    if not token:
+        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
+    if not chat_id:
+        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathConfig.root)
+    bot = telegram.Bot(token=token)
+    await bot.send_message(chat_id=chat_id, text=text)

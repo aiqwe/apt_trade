@@ -12,3 +12,4 @@ jinja2
 sqlitedict
 streamlit
 ruff
+pyarrow

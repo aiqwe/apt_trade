@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 from datetime import datetime, timedelta
 from loguru import logger
+import re
 
 from .utils import get_lawd_cd
 
@@ -15,7 +16,6 @@ def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
             f"Columns are different.\n{list(df1_diff)} are not in new dataframe,\n{list(df2_diff)} are not in org dataframe"
         )
 
-
 def convert_trade_columns(
     dictionary: dict,
     df: pd.DataFrame = None,
@@ -27,7 +27,7 @@ def convert_trade_columns(
     """컬럼이름 src -> dst로 변환, column_name이 df보다 우선하여 처리된다
 
     Args:
-        dictionary: 변환을 사용할 dictionary 테이블
+        dictionary: 변환을 사용할 ColumnConfig 테이블값
         df: 변환할 데이터프레임
         column_name: 변환할 컬럼명
         drop: 변환한 컬럼을 제외하고 모두 drop한다
@@ -157,19 +157,6 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
 
     return _df
 
-
-def merge_dataframe(org: pd.DataFrame, new: pd.DataFrame):
-    """org와 new 데이터프레임 axis=0으로 머지한다
-
-    Args:
-        org: 합쳐질 데이터프레임
-        new: 합칠 데이터프레임
-
-    """
-    _check_same_columns(org, new)
-    return pd.concat([org, new])
-
-
 def delete_latest_history(
     org: pd.DataFrame, this_month: str, last_month: str, date_column="date_id"
 ):
@@ -193,37 +180,21 @@ def delete_latest_history(
     _org = _org[~_org[date_column].str.contains(this_month)]
     return _org
 
-
-def process_apt2me_table(df):
-    processed = pd.DataFrame()
-
-    processed["확인날짜"] = df[df.columns[0]].apply(lambda x: x.split(" ")[0])
-    processed["확인날짜"] = processed["확인날짜"].apply(
-        lambda x: f"{x[:4]}-{x[4:6]}-{x[6:]}"
-    )
-    processed["전용면적"] = df[df.columns[0]].apply(
-        lambda x: x.split(" ")[1].split("/")[0]
-    )
-    processed["전용면적"] = (
-        processed["전용면적"]
-        .astype(float)
-        .apply(lambda x: f"{int(x)}({int((x / 3.3) + 7)}평)")
-    )
-
-    processed["가격"] = df[df.columns[1]].apply(lambda x: x.split(" ")[0])
-    processed["동"] = df[df.columns[1]].apply(lambda x: x.split(" ")[2].split("/")[0])
-    processed["층"] = df[df.columns[1]].apply(
-        lambda x: x.split(" ")[2].split("/")[1] + "층"
-    )
-    processed["총층수"] = df[df.columns[1]].apply(
-        lambda x: x.split(" ")[2].split("/")[2] + "층"
-    )
-    processed["방향"] = df[df.columns[1]].apply(lambda x: x.split(" ")[2].split("/")[3])
-
-    return processed
-
-
 def process_sales_column(df):
+    data = deepcopy(df)
+    # 면적구분 파싱 ex) 84C -> 84
+    pattern = r"\d+"
+    data['면적구분'] = data['면적타입'].apply(lambda x: re.match(pattern, x)[0])
+    # 단지 파싱 ex) 101동 -> 1단지
+    pattern = r".*\d+.*"
+    data['단지'] = data['동'].apply(lambda x: re.match(pattern, x)[0][0] + "단지" if re.match(pattern, x) else None)
+    data["floor"] = data["층"].apply(lambda x: x.split("/")[0])
+    data['집주인'] = np.where(data['인증'] == 'OWNER', "집주인", None)
+    data['가격요약'] = data['가격'].apply(lambda x: f"{x/1e8:.1f}억")
+
+    return data
+
+def filter_sales_column(df):
     prev_7day = (
         datetime.strptime(df["확인날짜"].max(), "%Y-%m-%d") - timedelta(days=7)
     ).strftime("%Y-%m-%d")
@@ -237,6 +208,6 @@ def process_sales_column(df):
     data["price"] = data["가격"].apply(
         lambda x: _convert_number(x.split("억")[0] + x.split("억")[-1].split("천")[0])
     )
-    data["floor"] = data["층"].apply(lambda x: x.split("층")[0])
+    data["floor"] = data["층"].apply(lambda x: x.split("/")[0])
 
     return data

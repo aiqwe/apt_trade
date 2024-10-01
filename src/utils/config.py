@@ -1,7 +1,7 @@
 from pathlib import Path
+import pyarrow as pa
 
-
-class PathDictionary:
+class PathConfig:
     """
     Attributes:
         cls.root: apt_trade
@@ -14,27 +14,26 @@ class PathDictionary:
     root: str = str(Path(__file__).parent.parent.parent)  # apt_trade
     src: str = str(Path(root).joinpath("src"))  # apt_trade/src
     data: str = str(Path(src).joinpath("data"))  # apt_trade/src/data
-    snapshot: str = str(
+    snapshots: str = str(
         Path(data).joinpath("snapshots")
     )  # apt_trade/src/data/snpashots
+    trade: str = Path(snapshots).joinpath("trade") # apt_trade/src/data/snpashots/trade
+    bunyang: str = Path(snapshots).joinpath("bunyang")  # apt_trade/src/data/snpashots/bunyang
+    sales: str = Path(snapshots).joinpath("sales")  # apt_trade/src/data/snpashots/sales
     history: str = str(Path(data).joinpath("history"))  # apt_trade/src/data/history
     metastore: str = str(Path(src).joinpath("metastore"))  # apt_trade/src/metastore
 
-
-class URLDictionary:
+class URLConfig:
     URL: dict = {
-        "apt_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
-        "lawd_cd": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
-        "bunyang_trade": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
-        "아파트": "https://apt2.me/apt/AptSellDanji.jsp",
-        "분양권": "https://apt2.me/apt/BunSellDanji.jsp",
+        "아파트실거래": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+        "법정동코드": "http://apis.data.go.kr/1741000/StanReginCd/getStanReginCdList",
+        "분양권실거래": "http://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade",
+        "네이버매물": "https://fin.land.naver.com/front-api/v1/complex/article/list",
         "전세자금대출금리": "http://apis.data.go.kr/B551408/rent-loan-rate-info/rate-list",
-        # params ={'serviceKey' : '서비스키', 'pageNo' : '1', 'numOfRows' : '10', 'dataType' : 'XML' }
     }
     FakeAgent: str = "u'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'"
 
-
-class ColumnDictionary:
+class ColumnConfig:
     LAWD_CD_DICTIONARY = {
         "region_cd": "지역코드",
         "sido_cd": "시도코드",
@@ -75,7 +74,7 @@ class ColumnDictionary:
     }
 
 
-class FilterDictionary:
+class FilterConfig:
     sgg_contains: list = [
         "서초구",
         "강남구",
@@ -117,4 +116,36 @@ class FilterDictionary:
         "옥수하이츠": "564",
         "힐스테이트녹번": "111964",
         "녹번역e편한세상캐슬": "119275",
+    }
+
+    sales_code: dict = {
+        "매매": "A1",
+        "전세": "B1",
+        "월세": "B2",
+        "단기임대": "B3"
+    }
+
+class SchemaConfig:
+    trade = {
+        '아파트명': "object",
+        '계약일': "object",
+        '건축년도': "object",
+        '전용면적': "float32",
+        '거래금액': "object",
+        '층': "int32",
+        '동': "object",
+        '거래유형': "object",
+        '계약해지여부': "object",
+        '계약해지사유발생일': "object",
+        '등기일자': "object",
+        '권리구분': "object",
+        '매수자': "object",
+        '매도자': "object",
+        '중개사소재지': "object",
+        '시군구코드': "object",
+        '법정동': "object",
+        '거래구분': "object",
+        '신규거래': "object",
+        "month_id": "object",
+        "date_id": "object"
     }

@@ -1,28 +1,33 @@
+from pathlib import Path
 import pandas as pd
 from copy import deepcopy
-from utils.utils import (
-    find_file,
-    send_message,
-    send_log,
-    BatchManager,
-    get_task_id,
-    load_env,
-)
-from utils.template import TelegramTemplate
-from utils.processing import process_sales_column
+from typing import Literal
 from jinja2 import Template
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from utils.config import PathDictionary, FilterDictionary
 import asyncio
 from loguru import logger
 
+from utils import (
+    send_log,
+    send_message,
+    load_env,
+    get_task_id,
+    BatchManager,
+    PathConfig,
+    FilterConfig,
+    TelegramTemplate,
+    process_sales_column
+)
 
-def _prepare_dataframe(fname: str, date_id: str):
-    fpath = find_file(f"{fname}")
-    df = pd.read_csv(fpath)
 
-    df = df[df["date_id"] == date_id]
+def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id: str, month_id: str = None):
+    fpath = str(Path(PathConfig.snapshots).joinpath(data_type))
+    filters = [("date_id", "=", date_id)]
+    if month_id:
+        filters = [[("month_id", "=", month_id), ("date_id", "=", date_id)]]
+    df = pd.read_parquet(fpath, engine="pyarrow", filters=filters)
+
     if len(df) == 0:
         error_msg = f"No data found for {date_id}"
         logger.error(error_msg)
@@ -30,23 +35,31 @@ def _prepare_dataframe(fname: str, date_id: str):
         raise ValueError(error_msg)
     return df
 
-
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
 
-    df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=date_id)
-    last_df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=prev_date_id)
+    trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
+    bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
+    df = pd.concat([trade, bunyang])
     total = df["계약일"].count()
-    last_total = last_df["계약일"].count()
+
+    if datetime.strptime(date_id, "%Y-%m-%d").day != 1:
+        last_trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=prev_date_id)
+        last_bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=prev_date_id)
+        last_df = pd.concat([last_trade, last_bunyang])
+        last_total = last_df["계약일"].count()
+        change = total - last_total
+    else:
+        change = 0
+
     agg = (
         df[df["시군구코드"].isin(sgg_contains)]
         .groupby("시군구코드")[["계약일", "계약해지여부", "신규거래"]]
         .count()
         .reset_index()
     )
-    change = total - last_total
 
     message = Template(TelegramTemplate.DAILY_STATUS).render(
         date_id=date_id,
@@ -65,7 +78,10 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
 def daily_specific_apt(
     month: str, date_id: str, apt_contains: list = None, filter_new=True
 ):
-    df = _prepare_dataframe(fname=f"trade_{month}.csv", date_id=date_id)
+    trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
+    bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
+    df = pd.concat([trade, bunyang])
+
     if filter_new:
         df = df[df["신규거래"] == "신규"]
     if apt_contains:
@@ -94,9 +110,7 @@ def daily_specific_apt(
     return message
 
 
-def sales_aggregation(month, date_id):
-    df = _prepare_dataframe(fname=f"sales_{month}.csv", date_id=date_id)
-    df = process_sales_column(df)
+def sales_aggregation(date_id):
     prev_date_id = (
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
@@ -108,9 +122,10 @@ def sales_aggregation(month, date_id):
             datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=7)
         ).strftime("%Y-%m-%d")
         data = data[data["확인날짜"] >= day_filter]
+        data = data[data['면적구분'] == '84']
 
-        grouped = data.groupby("단지명").agg(
-            {"price": ["mean", "median", "max", "min", "count"]}
+        grouped = data.groupby("아파트명").agg(
+            {"가격": ["mean", "median", "max", "min", "count"]}
         )
         grouped.columns = ["평균", "중앙", "최대", "최저", "매물수"]
         grouped = grouped.reset_index()
@@ -124,15 +139,17 @@ def sales_aggregation(month, date_id):
             res[col] = res[col].apply(lambda x: str(round(x / 1e8, 2)) + "억")
         return res
 
+    df = _prepare_dataframe(data_type="sales", date_id=date_id)
     this = _agg(df, date_id)
+
+    # 이건 현재 매물용
     this_data = _process_columns(this)
     this_data = this_data.to_dict(orient="records")
 
     # 전일과 비교
-    df = _prepare_dataframe(fname=f"sales_{month}.csv", date_id=date_id)
-    df = process_sales_column(df)
-    prev = _agg(df, prev_date_id)
-    merged = this.merge(prev, how="left", on="단지명")
+    prev_df = _prepare_dataframe(data_type="sales", date_id=prev_date_id)
+    prev = _agg(prev_df, prev_date_id)
+    merged = this.merge(prev, how="left", on="아파트명")
 
     merged["평균"] = round((merged["평균_x"] - merged["평균_y"]) / 1e8, 2)
     merged["중앙"] = round((merged["중앙_x"] - merged["중앙_y"]) / 1e8, 2)
@@ -154,22 +171,27 @@ def sales_aggregation(month, date_id):
 if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
+    # 매월 1일은 전월꺼로
+    if datetime.now().day == 1:
+        this_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
+        last_month = int((datetime.now() - relativedelta(months=2)).strftime("%Y%m"))
+
     date_id = datetime.now().strftime("%Y-%m-%d")
 
     monthly_chat_id = load_env(
-        "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathDictionary.root
+        "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathConfig.root
     )
     detail_chat_id = load_env(
-        "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathDictionary.root
+        "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
     test_chat_id = load_env(
-        "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathDictionary.root
+        "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root
     )
     mode = "prod"
     block = False if mode == "test" else True
 
-    sgg_contains = FilterDictionary.sgg_contains
-    apt_contains = FilterDictionary.apt_contains
+    sgg_contains = FilterConfig.sgg_contains
+    apt_contains = FilterConfig.apt_contains
 
     # 월별 계약 현황
     for month in [last_month, this_month]:
@@ -193,7 +215,7 @@ if __name__ == "__main__":
 
     # 매물 집계
     task_id = get_task_id(__file__, this_month, "sales_monthly")
-    msg = sales_aggregation(month=this_month, date_id=date_id)
+    msg = sales_aggregation(date_id=date_id)
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, if_message=True, block=block)
