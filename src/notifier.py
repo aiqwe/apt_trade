@@ -16,6 +16,7 @@ from utils import (
     BatchManager,
     PathConfig,
     FilterConfig,
+    SchemaConfig,
     TelegramTemplate,
     process_sales_column
 )
@@ -32,23 +33,28 @@ def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id:
         error_msg = f"No data found for {date_id}"
         logger.error(error_msg)
         asyncio.run(send_log(error_msg))
-        raise ValueError(error_msg)
+        return pd.DataFrame()
     return df
 
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
-
     trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
     bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
     df = pd.concat([trade, bunyang])
+    # 데이터가 없을 시 처리
+    if len(df) == 0:
+        df = pd.DataFrame(columns=list(SchemaConfig.trade.keys()))
     total = df["계약일"].count()
 
     if datetime.strptime(date_id, "%Y-%m-%d").day != 1:
         last_trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=prev_date_id)
         last_bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=prev_date_id)
         last_df = pd.concat([last_trade, last_bunyang])
+        # 데이터가 없을 시 처리
+        if len(df) == 0:
+            last_df = pd.DataFrame(columns=list(SchemaConfig.trade.keys()))
         last_total = last_df["계약일"].count()
         change = total - last_total
     else:
@@ -81,6 +87,9 @@ def daily_specific_apt(
     trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
     bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
     df = pd.concat([trade, bunyang])
+    # 데이터가 없을 시 처리
+    if len(df) == 0:
+        df = pd.DataFrame(columns=list(SchemaConfig.trade.keys()))
 
     if filter_new:
         df = df[df["신규거래"] == "신규"]
@@ -136,7 +145,7 @@ def sales_aggregation(date_id):
         res = deepcopy(df)
         res["매물수"] = res["매물수"].apply(lambda x: str(x) + "개")
         for col in res.columns[1:-1]:
-            res[col] = res[col].apply(lambda x: str(round(x / 1e8, 2)) + "억")
+            res[col] = res[col].apply(lambda x: f"{x / 1e8:.2f}" + "억")
         return res
 
     df = _prepare_dataframe(data_type="sales", date_id=date_id)
@@ -151,13 +160,13 @@ def sales_aggregation(date_id):
     prev = _agg(prev_df, prev_date_id)
     merged = this.merge(prev, how="left", on="아파트명")
 
-    merged["평균"] = round((merged["평균_x"] - merged["평균_y"]) / 1e8, 2)
-    merged["중앙"] = round((merged["중앙_x"] - merged["중앙_y"]) / 1e8, 2)
-    merged["최대"] = round((merged["최대_x"] - merged["최대_y"]) / 1e8, 2)
-    merged["최저"] = round((merged["최저_x"] - merged["최저_y"]) / 1e8, 2)
+    merged["평균"] = round((merged["평균_x"] - merged["평균_y"]) / 1e8, 3)
+    merged["중앙"] = round((merged["중앙_x"] - merged["중앙_y"]) / 1e8, 3)
+    merged["최대"] = round((merged["최대_x"] - merged["최대_y"]) / 1e8, 3)
+    merged["최저"] = round((merged["최저_x"] - merged["최저_y"]) / 1e8, 3)
     merged["매물수"] = merged["매물수_x"] - merged["매물수_y"]
 
-    merged = merged[["평균", "중앙", "최대", "최저", "매물수"]]
+    merged = merged[["아파트명", "평균", "중앙", "최대", "최저", "매물수"]]
     merged = _process_columns(merged)
     merged_data = merged.to_dict(orient="records")
 

@@ -1,5 +1,5 @@
-from utils.config import PathDictionary
-from utils.utils import BatchManager, get_task_id
+from utils import PathConfig
+from utils import BatchManager, get_task_id
 from git import Repo
 from loguru import logger
 from datetime import datetime
@@ -7,7 +7,7 @@ from datetime import datetime
 
 def git_pull():
     try:
-        repo = Repo(PathDictionary.root)
+        repo = Repo(PathConfig.root)
         repo.remote(name="origin").pull()
     except Exception as e:
         logger.error(e)
