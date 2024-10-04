@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 import pandas as pd
 from copy import deepcopy
@@ -20,7 +21,7 @@ from utils import (
     TelegramTemplate,
     process_sales_column
 )
-
+import inspect
 
 def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id: str, month_id: str = None):
     fpath = str(Path(PathConfig.snapshots).joinpath(data_type))
@@ -30,8 +31,9 @@ def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id:
     df = pd.read_parquet(fpath, engine="pyarrow", filters=filters)
 
     if len(df) == 0:
-        error_msg = f"No data found for {date_id}"
-        logger.error(error_msg)
+        error_msg = f"No data found for {os.path.basename(fpath)}/{month_id}/{date_id}"
+        func_name = inspect.currentframe().f_code.co_name
+        logger.error(f"function_name: {func_name}\n{error_msg}")
         asyncio.run(send_log(error_msg))
         return pd.DataFrame()
     return df

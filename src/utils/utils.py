@@ -147,10 +147,10 @@ class BatchManager:
                     else:
                         func(*args, **kwargs)
                 except Exception as e:
-                    logger.error(repr(e))
+                    logger.error(f"func:{func.__name__}:\n{repr(e)}")
                     asyncio.run(
                         send_log(
-                            text=repr(e),
+                            text=repr(f"func:{func.__name__}:\n{repr(e)}"),
                             chat_id=kwargs.get("chat_id", None),
                             token=kwargs.get("token", None),
                         )
@@ -168,10 +168,10 @@ class BatchManager:
                 else:
                     func(*args, **kwargs)
             except Exception as e:
-                logger.error(repr(e))
+                logger.error(f"func:{func.__name__}:\n{repr(e)}")
                 asyncio.run(
                     send_log(
-                        text=repr(e),
+                        text=repr(f"func:{func.__name__}:\n{repr(e)}"),
                         chat_id=kwargs.get("chat_id", None),
                         token=kwargs.get("token", None),
                     )
