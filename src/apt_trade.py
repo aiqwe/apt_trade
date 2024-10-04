@@ -20,8 +20,9 @@ from utils import (
     convert_trade_columns,
     process_trade_columns,
     generate_new_trade_columns,
-    SchemaConfig
+    SchemaConfig,
 )
+
 
 def _sub_task(lawd_cd, deal_ymd):
     # API Parameters
@@ -111,8 +112,14 @@ def main_task(month: int, date_id: str):
     concat = concat.astype(SchemaConfig.trade)
     # Parquet로 Overwrite 저장
     path = PathConfig.trade
-    concat.to_parquet(path=path, engine="pyarrow", partition_cols=["month_id", "date_id"], existing_data_behavior="delete_matching")
+    concat.to_parquet(
+        path=path,
+        engine="pyarrow",
+        partition_cols=["month_id", "date_id"],
+        existing_data_behavior="delete_matching",
+    )
     logger.info(f"Save the data in '{path}/month_id={month}/date_id={date_id}'")
+
 
 # TODO: history 추가
 if __name__ == "__main__":
@@ -130,8 +137,8 @@ if __name__ == "__main__":
     bm = BatchManager(
         task_id=get_task_id(__file__, this_month), key=date_id, block=block
     )
-    bm(func=main_task, month=last_month, date_id=date_id)
+    bm(task_type="execute", func=main_task, month=last_month, date_id=date_id)
     bm = BatchManager(
         task_id=get_task_id(__file__, last_month), key=date_id, block=block
     )
-    bm(func=main_task, month=this_month, date_id=date_id)
+    bm(task_type="execute", func=main_task, month=this_month, date_id=date_id)

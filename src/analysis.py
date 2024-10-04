@@ -54,4 +54,4 @@ if __name__ == "__main__":
     block = False if mode == "test" else True
 
     bm = BatchManager(task_id=get_task_id(__file__, date_id), key=date_id, block=block)
-    bm(func=sales_trend, date_id=date_id)
+    bm(task_type="execute", func=sales_trend, date_id=date_id)

@@ -7,8 +7,6 @@ from tqdm import tqdm
 import json
 from bs4 import BeautifulSoup
 from functools import partial
-import time
-import random
 
 from utils import (
     get_naver_sales_api_data,
@@ -16,7 +14,7 @@ from utils import (
     BatchManager,
     FilterConfig,
     PathConfig,
-    process_sales_column
+    process_sales_column,
 )
 
 
@@ -24,30 +22,52 @@ def _sub_task(apt_name, sales_name):
     apt_code = FilterConfig.apt_code[apt_name]
     sales_code = FilterConfig.sales_code[sales_name]
     logger.info(f"{apt_name} START")
-    sentinel = get_naver_sales_api_data(apt_code=apt_code, sales_code=sales_code, page=0)
-    total_cnt = json.loads(sentinel.text)['result']['totalCount']
+    sentinel = get_naver_sales_api_data(
+        apt_code=apt_code, sales_code=sales_code, page=0
+    )
+    total_cnt = json.loads(sentinel.text)["result"]["totalCount"]
 
     for page_idx in range((total_cnt // 30) + 1):
-        response = get_naver_sales_api_data(apt_code=apt_code, sales_code=sales_code, page=page_idx)
+        response = get_naver_sales_api_data(
+            apt_code=apt_code, sales_code=sales_code, page=page_idx
+        )
         soup = BeautifulSoup(response.text, "html")
         rawdata = json.loads(soup.p.text)
-        data = rawdata['result']['list']
+        data = rawdata["result"]["list"]
         rows = []
 
         for idx in range(len(data)):
             row = {
-                "아파트명": data[idx]['representativeArticleInfo']['complexName'],
-                "동": data[idx]['representativeArticleInfo']['dongName'],
-                "거래유형": data[idx]['representativeArticleInfo']['tradeType'],
-                "면적": data[idx]['representativeArticleInfo']['spaceInfo']['exclusiveSpace'],
-                "면적타입": data[idx]['representativeArticleInfo']['spaceInfo']['exclusiveSpaceName'],
-                "확인날짜": data[idx]['representativeArticleInfo']['verificationInfo']['exposureStartDate'],
-                "인증": data[idx]['representativeArticleInfo']['verificationInfo']['verificationType'],
-                "층": data[idx]['representativeArticleInfo']['articleDetail']['floorInfo'],
-                "비고": data[idx]['representativeArticleInfo']['articleDetail']['articleFeatureDescription'],
-                "가격": data[idx]['representativeArticleInfo']['priceInfo']['dealPrice'],
-                "가격변화": data[idx]['representativeArticleInfo']['priceInfo']['priceChangeStatus'],
-                "가격히스토리": data[idx]['representativeArticleInfo']['priceInfo']['priceChangeHistories']
+                "아파트명": data[idx]["representativeArticleInfo"]["complexName"],
+                "동": data[idx]["representativeArticleInfo"]["dongName"],
+                "거래유형": data[idx]["representativeArticleInfo"]["tradeType"],
+                "면적": data[idx]["representativeArticleInfo"]["spaceInfo"][
+                    "exclusiveSpace"
+                ],
+                "면적타입": data[idx]["representativeArticleInfo"]["spaceInfo"][
+                    "exclusiveSpaceName"
+                ],
+                "확인날짜": data[idx]["representativeArticleInfo"]["verificationInfo"][
+                    "exposureStartDate"
+                ],
+                "인증": data[idx]["representativeArticleInfo"]["verificationInfo"][
+                    "verificationType"
+                ],
+                "층": data[idx]["representativeArticleInfo"]["articleDetail"][
+                    "floorInfo"
+                ],
+                "비고": data[idx]["representativeArticleInfo"]["articleDetail"][
+                    "articleFeatureDescription"
+                ],
+                "가격": data[idx]["representativeArticleInfo"]["priceInfo"][
+                    "dealPrice"
+                ],
+                "가격변화": data[idx]["representativeArticleInfo"]["priceInfo"][
+                    "priceChangeStatus"
+                ],
+                "가격히스토리": data[idx]["representativeArticleInfo"]["priceInfo"][
+                    "priceChangeHistories"
+                ],
             }
             rows.append(row)
         if page_idx == 0:
@@ -73,9 +93,7 @@ def main_task(apt_names: list = None, date_id=None, sales_name=None):
     if not apt_names:
         apt_names = list(FilterConfig.apt_code.keys())
     else:
-        apt_names = {
-            k: v for k, v in FilterConfig.apt_code.items() if k in apt_names
-        }
+        apt_names = {k: v for k, v in FilterConfig.apt_code.items() if k in apt_names}
     if not date_id:
         date_id = datetime.now().strftime("%Y-%m-%d")
 
@@ -90,13 +108,18 @@ def main_task(apt_names: list = None, date_id=None, sales_name=None):
     concat = pd.concat(result)
     concat["date_id"] = date_id
     reverse_sales_code = {v: k for k, v in FilterConfig.sales_code.items()}
-    concat['거래유형'] = concat['거래유형'].apply(lambda x: reverse_sales_code[x])
+    concat["거래유형"] = concat["거래유형"].apply(lambda x: reverse_sales_code[x])
     concat = process_sales_column(concat)
     logger.info("processing columns completed")
 
     # Parquet로 Overwrite 저장
     path = PathConfig.sales
-    concat.to_parquet(path=path, engine="pyarrow", partition_cols=["date_id"], existing_data_behavior="delete_matching")
+    concat.to_parquet(
+        path=path,
+        engine="pyarrow",
+        partition_cols=["date_id"],
+        existing_data_behavior="delete_matching",
+    )
     logger.info(f"Save the data in '{path}/date_id={date_id}'")
 
 
@@ -108,4 +131,10 @@ if __name__ == "__main__":
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
 
-    bm(main_task, apt_names=list(FilterConfig.apt_code.keys()), date_id=date_id, sales_name="매매")
+    bm(
+        task_type="message",
+        func=main_task,
+        apt_names=list(FilterConfig.apt_code.keys()),
+        date_id=date_id,
+        sales_name="매매",
+    )

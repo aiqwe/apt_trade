@@ -36,4 +36,4 @@ if __name__ == "__main__":
     block = False if mode == "test" else True
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
-    bm(func=main)
+    bm(task_type="execute", func=main)

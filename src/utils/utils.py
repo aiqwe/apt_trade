@@ -3,6 +3,7 @@ import requests
 import asyncio
 from io import StringIO
 from datetime import datetime
+from typing import Literal
 
 import telegram
 import pandas as pd
@@ -122,19 +123,44 @@ class BatchManager:
         self,
         task_id: str,
         key: str = None,
-        if_message=False,
-        if_photo=False,
         block=True,
     ):
+        """
+        Batchmanager는 Metadata를 관리하고, 이미 실행된 작업을 Skip하게함.
+        초기화단계에서는 BatchManager가 스케줄링을 관리하는 Argument만 입력함
+        Args:
+            task_id: metastore에 저장될 task_id
+            key: metastore에서 사용할 Key
+            block: 스케줄링의 반복 실행을 블록킹할지 여부
+        """
         if not key:
             key = datetime.now().strftime("%Y-%m-%d")
         self.key = key
         self.task_id = task_id
-        self.if_message = if_message
-        self.if_photo = if_photo
         self.block = block
 
-    def __call__(self, func, *args, **kwargs):
+    def execute(self, func, *args, **kwargs):
+        """BatchManger에서 실행할 함수
+
+        Args:
+            func: 실행할 함수
+            *args: func의 argument
+            **kwargs: func의 keyward argument
+        """
+        func(*args, **kwargs)
+
+    def send_message(self, text, chat_id, token):
+        asyncio.run(send_message(text=text, chat_id=chat_id, token=token))
+
+    def send_photo(self, photo, chat_id, token):
+        asyncio.run(send_photo(photo=photo, chat_id=chat_id, token=token))
+
+    def send_log(self, text, chat_id, token):
+        asyncio.run(send_log(text=text, chat_id=chat_id, token=token))
+
+    def __call__(
+        self, task_type: Literal["message", "photo", "execute"], func, *args, **kwargs
+    ):
         if self.block:
             meta = Metastore()
             if not meta[self.key]:
@@ -146,61 +172,49 @@ class BatchManager:
             else:
                 try:
                     meta.add(key=self.key, value=self.task_id)
-                    if self.if_message:
-                        asyncio.run(
-                            send_message(
-                                text=kwargs.get("text", None),
-                                chat_id=kwargs.get("chat_id", None),
-                                token=kwargs.get("token", None),
-                            )
-                        )
-                    elif self.if_photo:
-                        asyncio.run(
-                            send_photo(
-                                photo=kwargs.get("photo", None),
-                                chat_id=kwargs.get("chat_id", None),
-                                token=kwargs.get("token", None),
-                            )
-                        )
-                    else:
-                        func(*args, **kwargs)
-                except Exception as e:
-                    logger.error(f"func:{func.__name__}:\n{repr(e)}")
-                    asyncio.run(
-                        send_log(
-                            text=repr(f"func:{func.__name__}:\n{repr(e)}"),
-                            chat_id=kwargs.get("chat_id", None),
-                            token=kwargs.get("token", None),
-                        )
-                    )
-        else:
-            try:
-                if self.if_message:
-                    asyncio.run(
-                        send_message(
+                    if task_type == "message":
+                        self.send_message(
                             text=kwargs.get("text", None),
                             chat_id=kwargs.get("chat_id", None),
                             token=kwargs.get("token", None),
                         )
-                    )
-                elif self.if_photo:
-                    asyncio.run(
-                        send_photo(
+                    if task_type == "photo":
+                        self.send_photo(
                             photo=kwargs.get("photo", None),
                             chat_id=kwargs.get("chat_id", None),
                             token=kwargs.get("token", None),
                         )
-                    )
-                else:
-                    func(*args, **kwargs)
-            except Exception as e:
-                logger.error(f"func:{func.__name__}:\n{repr(e)}")
-                asyncio.run(
-                    send_log(
+                    if task_type == "execute":
+                        self.execute(func, *args, **kwargs)
+                except Exception as e:
+                    logger.error(f"func:{func.__name__}:\n{repr(e)}")
+                    self.send_log(
                         text=repr(f"func:{func.__name__}:\n{repr(e)}"),
+                        chat_id=None,
+                        token=kwargs.get("token", None),
+                    )
+        else:
+            try:
+                if task_type == "message":
+                    self.send_message(
+                        text=kwargs.get("text", None),
                         chat_id=kwargs.get("chat_id", None),
                         token=kwargs.get("token", None),
                     )
+                if task_type == "photo":
+                    self.send_photo(
+                        photo=kwargs.get("photo", None),
+                        chat_id=kwargs.get("chat_id", None),
+                        token=kwargs.get("token", None),
+                    )
+                if task_type == "execute":
+                    self.execute(func, *args, **kwargs)
+            except Exception as e:
+                logger.error(f"func:{func.__name__}:\n{repr(e)}")
+                self.send_log(
+                    text=repr(f"func:{func.__name__}:\n{repr(e)}"),
+                    chat_id=None,
+                    token=kwargs.get("token", None),
                 )
 
 
