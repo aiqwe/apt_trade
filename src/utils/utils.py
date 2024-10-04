@@ -31,6 +31,7 @@ def load_env(key: str = None, fname=".env", start_path=None):
         raise ValueError(f"cant find env variable '{key}'")
     return env
 
+
 def parse_xml(response: str, tag):
     """xml 데이터를 파싱해서 Pandas DataFrame으로 반환
 
@@ -41,6 +42,7 @@ def parse_xml(response: str, tag):
     soup = BeautifulSoup(response, "xml")
     data = soup.findAll(tag)[0].decode()
     return pd.read_xml(StringIO(data))
+
 
 def get_lawd_cd(fname: str = "lawd_cd.csv"):
     """법정동코드를 다운받아서 서울특별시 코드 5자리만 파싱
@@ -116,12 +118,20 @@ class BatchManager:
         if_message: telegram 메세지인 경우 True(async 사용 때문)
     """
 
-    def __init__(self, task_id: str, key: str = None, if_message=False, block=True):
+    def __init__(
+        self,
+        task_id: str,
+        key: str = None,
+        if_message=False,
+        if_photo=False,
+        block=True,
+    ):
         if not key:
             key = datetime.now().strftime("%Y-%m-%d")
         self.key = key
         self.task_id = task_id
         self.if_message = if_message
+        self.if_photo = if_photo
         self.block = block
 
     def __call__(self, func, *args, **kwargs):
@@ -140,6 +150,14 @@ class BatchManager:
                         asyncio.run(
                             send_message(
                                 text=kwargs.get("text", None),
+                                chat_id=kwargs.get("chat_id", None),
+                                token=kwargs.get("token", None),
+                            )
+                        )
+                    elif self.if_photo:
+                        asyncio.run(
+                            send_photo(
+                                photo=kwargs.get("photo", None),
                                 chat_id=kwargs.get("chat_id", None),
                                 token=kwargs.get("token", None),
                             )
@@ -165,6 +183,14 @@ class BatchManager:
                             token=kwargs.get("token", None),
                         )
                     )
+                elif self.if_photo:
+                    asyncio.run(
+                        send_photo(
+                            photo=kwargs.get("photo", None),
+                            chat_id=kwargs.get("chat_id", None),
+                            token=kwargs.get("token", None),
+                        )
+                    )
                 else:
                     func(*args, **kwargs)
             except Exception as e:
@@ -177,14 +203,16 @@ class BatchManager:
                     )
                 )
 
+
 def get_chat_id(token: str):
-    """ bot의 getUpdates를 get함으로써 chat_id 정보를 얻어내기
+    """bot의 getUpdates를 get함으로써 chat_id 정보를 얻어내기
     Args:
         token: Telegram Bot Token
     """
     url = f"https://api.telegram.org/bot{token}/getUpdates"
     response = requests.get(url)
     return response
+
 
 async def send_log(text: str, chat_id: str = None, token: str = None):
     """telegram chat_id로 메세지 전송
@@ -196,11 +224,10 @@ async def send_log(text: str, chat_id: str = None, token: str = None):
     if not token:
         token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
     if not chat_id:
-        chat_id = load_env(
-            "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root
-        )
+        chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
+
 
 async def send_message(text: str, chat_id: str = None, token: str = None):
     """telegram chat_id로 메세지 전송
@@ -215,3 +242,18 @@ async def send_message(text: str, chat_id: str = None, token: str = None):
         chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathConfig.root)
     bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
+
+
+async def send_photo(photo: str, chat_id: str = None, token: str = None):
+    """telegram chat_id로 메세지 전송
+    Args:
+        photo: 전송할 이미지의 Path
+        chat_id: telegram channel id
+        token: bot의 token
+    """
+    if not token:
+        token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
+    if not chat_id:
+        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathConfig.root)
+    bot = telegram.Bot(token=token)
+    await bot.send_photo(chat_id=chat_id, photo=photo)

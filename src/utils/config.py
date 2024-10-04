@@ -1,5 +1,5 @@
 from pathlib import Path
-import pyarrow as pa
+
 
 class PathConfig:
     """
@@ -17,11 +17,15 @@ class PathConfig:
     snapshots: str = str(
         Path(data).joinpath("snapshots")
     )  # apt_trade/src/data/snpashots
-    trade: str = Path(snapshots).joinpath("trade") # apt_trade/src/data/snpashots/trade
-    bunyang: str = Path(snapshots).joinpath("bunyang")  # apt_trade/src/data/snpashots/bunyang
+    trade: str = Path(snapshots).joinpath("trade")  # apt_trade/src/data/snpashots/trade
+    bunyang: str = Path(snapshots).joinpath(
+        "bunyang"
+    )  # apt_trade/src/data/snpashots/bunyang
     sales: str = Path(snapshots).joinpath("sales")  # apt_trade/src/data/snpashots/sales
     history: str = str(Path(data).joinpath("history"))  # apt_trade/src/data/history
     metastore: str = str(Path(src).joinpath("metastore"))  # apt_trade/src/metastore
+    graph: str = str(Path(data).joinpath("graph"))  # apt_trade/src/metastore
+
 
 class URLConfig:
     URL: dict = {
@@ -32,6 +36,7 @@ class URLConfig:
         "전세자금대출금리": "http://apis.data.go.kr/B551408/rent-loan-rate-info/rate-list",
     }
     FakeAgent: str = "u'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36'"
+
 
 class ColumnConfig:
     LAWD_CD_DICTIONARY = {
@@ -118,34 +123,30 @@ class FilterConfig:
         "녹번역e편한세상캐슬": "119275",
     }
 
-    sales_code: dict = {
-        "매매": "A1",
-        "전세": "B1",
-        "월세": "B2",
-        "단기임대": "B3"
-    }
+    sales_code: dict = {"매매": "A1", "전세": "B1", "월세": "B2", "단기임대": "B3"}
+
 
 class SchemaConfig:
     trade = {
-        '아파트명': "object",
-        '계약일': "object",
-        '건축년도': "object",
-        '전용면적': "float32",
-        '거래금액': "object",
-        '층': "int32",
-        '동': "object",
-        '거래유형': "object",
-        '계약해지여부': "object",
-        '계약해지사유발생일': "object",
-        '등기일자': "object",
-        '권리구분': "object",
-        '매수자': "object",
-        '매도자': "object",
-        '중개사소재지': "object",
-        '시군구코드': "object",
-        '법정동': "object",
-        '거래구분': "object",
-        '신규거래': "object",
+        "아파트명": "object",
+        "계약일": "object",
+        "건축년도": "object",
+        "전용면적": "float32",
+        "거래금액": "object",
+        "층": "int32",
+        "동": "object",
+        "거래유형": "object",
+        "계약해지여부": "object",
+        "계약해지사유발생일": "object",
+        "등기일자": "object",
+        "권리구분": "object",
+        "매수자": "object",
+        "매도자": "object",
+        "중개사소재지": "object",
+        "시군구코드": "object",
+        "법정동": "object",
+        "거래구분": "object",
+        "신규거래": "object",
         "month_id": "object",
-        "date_id": "object"
+        "date_id": "object",
     }

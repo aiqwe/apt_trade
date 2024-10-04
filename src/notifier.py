@@ -12,6 +12,7 @@ from loguru import logger
 from utils import (
     send_log,
     send_message,
+    send_photo,
     load_env,
     get_task_id,
     BatchManager,
@@ -19,11 +20,13 @@ from utils import (
     FilterConfig,
     SchemaConfig,
     TelegramTemplate,
-    process_sales_column
 )
 import inspect
 
-def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id: str, month_id: str = None):
+
+def _prepare_dataframe(
+    data_type: Literal["trade", "bunyang", "sales"], date_id: str, month_id: str = None
+):
     fpath = str(Path(PathConfig.snapshots).joinpath(data_type))
     filters = [("date_id", "=", date_id)]
     if month_id:
@@ -38,6 +41,7 @@ def _prepare_dataframe(data_type: Literal["trade", "bunyang", "sales"], date_id:
         return pd.DataFrame()
     return df
 
+
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
@@ -51,8 +55,12 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     total = df["계약일"].count()
 
     if datetime.strptime(date_id, "%Y-%m-%d").day != 1:
-        last_trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=prev_date_id)
-        last_bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=prev_date_id)
+        last_trade = _prepare_dataframe(
+            data_type="trade", month_id=month, date_id=prev_date_id
+        )
+        last_bunyang = _prepare_dataframe(
+            data_type="bunyang", month_id=month, date_id=prev_date_id
+        )
         last_df = pd.concat([last_trade, last_bunyang])
         # 데이터가 없을 시 처리
         if len(df) == 0:
@@ -133,7 +141,7 @@ def sales_aggregation(date_id):
             datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=7)
         ).strftime("%Y-%m-%d")
         data = data[data["확인날짜"] >= day_filter]
-        data = data[data['면적구분'] == '84']
+        data = data[data["면적구분"] == "84"]
 
         grouped = data.groupby("아파트명").agg(
             {"가격": ["mean", "median", "max", "min", "count"]}
@@ -179,6 +187,10 @@ def sales_aggregation(date_id):
     return message
 
 
+def sales_trend(date_id, apt_name):
+    return os.path.join(PathConfig.graph, f"{apt_name}.png")
+
+
 if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
@@ -195,9 +207,7 @@ if __name__ == "__main__":
     detail_chat_id = load_env(
         "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
-    test_chat_id = load_env(
-        "TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root
-    )
+    test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     mode = "prod"
     block = False if mode == "test" else True
 
@@ -231,3 +241,12 @@ if __name__ == "__main__":
 
     bm = BatchManager(task_id=task_id, if_message=True, block=block)
     bm(func=send_message, text=msg, chat_id=chat_id)
+
+    # 매물 그래프
+    for apt_name in apt_contains:
+        task_id = get_task_id(__file__, apt_name, "sales_trend")
+        photo = sales_trend(date_id=date_id, apt_name=apt_name)
+        chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+        bm = BatchManager(task_id=task_id, if_photo=True, block=block)
+        bm(func=send_photo, photo=photo, chat_id=chat_id)
