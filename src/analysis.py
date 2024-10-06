@@ -2,11 +2,21 @@ import pandas as pd
 from utils import PathConfig, FilterConfig, BatchManager, get_task_id
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
+from matplotlib import font_manager as fm
+
 import os
 from loguru import logger
 
+# Font 찾기
+font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+fontpath = [f for f in font_list if "NanumGothic.ttf" in f][0]
+font_name = fm.FontProperties(fname=fontpath, size=10).get_name()
+fm.findfont("NanumGothic")
+plt.rc('font', family=font_name)
+
 
 def sales_trend(date_id):
+
     df = pd.read_parquet(PathConfig.sales)
     # Make Graph and save png files in PathConfig.graph
     for apt_name in FilterConfig.apt_code.keys():
