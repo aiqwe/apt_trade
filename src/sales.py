@@ -132,7 +132,7 @@ if __name__ == "__main__":
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
 
     bm(
-        task_type="message",
+        task_type="execute",
         func=main_task,
         apt_names=list(FilterConfig.apt_code.keys()),
         date_id=date_id,

@@ -44,15 +44,17 @@ def _prepare_dataframe(
 
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
-        datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
+            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
     trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
     bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
-    df = pd.concat([trade, bunyang])
     # 데이터가 없을 시 처리
+    df = pd.concat([trade, bunyang])
     if len(df) == 0:
         df = pd.DataFrame(columns=list(SchemaConfig.trade.keys()))
-    total = df["계약일"].count()
+        total = 0
+    else:
+        total = df["계약일"].count()
 
     if datetime.strptime(date_id, "%Y-%m-%d").day != 1:
         last_trade = _prepare_dataframe(
@@ -62,10 +64,13 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
             data_type="bunyang", month_id=month, date_id=prev_date_id
         )
         last_df = pd.concat([last_trade, last_bunyang])
+
         # 데이터가 없을 시 처리
-        if len(df) == 0:
+        if len(last_df) == 0:
             last_df = pd.DataFrame(columns=list(SchemaConfig.trade.keys()))
-        last_total = last_df["계약일"].count()
+            last_total = 0
+        else:
+            last_total = last_df["계약일"].count()
         change = total - last_total
     else:
         change = 0
@@ -201,7 +206,6 @@ if __name__ == "__main__":
         last_month = int((datetime.now() - relativedelta(months=2)).strftime("%Y%m"))
 
     date_id = datetime.now().strftime("%Y-%m-%d")
-    date_id = "2024-10-04"
 
     monthly_chat_id = load_env(
         "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathConfig.root
@@ -210,7 +214,7 @@ if __name__ == "__main__":
         "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
-    mode = "prod"
+    mode = "test"
     block = False if mode == "test" else True
 
     sgg_contains = FilterConfig.sgg_contains

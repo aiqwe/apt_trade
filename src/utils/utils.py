@@ -253,7 +253,7 @@ async def send_message(text: str, chat_id: str = None, token: str = None):
     if not token:
         token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
     if not chat_id:
-        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathConfig.root)
+        chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     bot = telegram.Bot(token=token)
     await bot.send_message(chat_id=chat_id, text=text)
 
@@ -268,6 +268,6 @@ async def send_photo(photo: str, chat_id: str = None, token: str = None):
     if not token:
         token = load_env("TELEGRAM_BOT_TOKEN", ".env", start_path=PathConfig.root)
     if not chat_id:
-        chat_id = load_env("TELEGRAM_CHAT_ID", ".env", start_path=PathConfig.root)
+        chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     bot = telegram.Bot(token=token)
     await bot.send_photo(chat_id=chat_id, photo=photo)
