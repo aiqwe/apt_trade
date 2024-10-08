@@ -44,7 +44,7 @@ def _prepare_dataframe(
 
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
-            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
+        datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
     trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
     bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
@@ -193,8 +193,8 @@ def sales_aggregation(date_id):
     return message
 
 
-def sales_trend(apt_name):
-    return os.path.join(PathConfig.graph, f"{apt_name}.png")
+def sales_trend():
+    return os.path.join(PathConfig.graph, "sales_trend.png")
 
 
 if __name__ == "__main__":
@@ -250,10 +250,9 @@ if __name__ == "__main__":
     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
 
     # 매물 그래프
-    for apt_name in apt_contains:
-        task_id = get_task_id(__file__, apt_name, "sales_trend")
-        photo = sales_trend(apt_name=apt_name)
-        chat_id = test_chat_id if mode == "test" else monthly_chat_id
+    task_id = get_task_id(__file__, "sales_trend")
+    photo = sales_trend()
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
-        bm = BatchManager(task_id=task_id, key=date_id, block=block)
-        bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+    bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
