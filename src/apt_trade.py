@@ -131,7 +131,7 @@ if __name__ == "__main__":
         last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
 
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "prod"
+    mode = "test"
     block = False if mode == "test" else True
 
     bm = BatchManager(

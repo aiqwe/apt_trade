@@ -126,7 +126,7 @@ def main_task(apt_names: list = None, date_id=None, sales_name=None):
 # TODO: history 추가
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "prod"
+    mode = "test"
     block = False if mode == "test" else True
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
