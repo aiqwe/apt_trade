@@ -4,8 +4,56 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from loguru import logger
 import re
+from pathlib import Path
+from typing import Literal
+import os
+import asyncio
 
-from .utils import get_lawd_cd
+from .utils import PathConfig, get_lawd_cd, send_log, get_funcname
+
+
+def prepare_dataframe(
+    data_type: Literal["trade", "bunyang", "sales"] = None,
+    date_id: str = None,
+    month_id: str = None,
+):
+    """df가 주어지면 해당 dataframe에서 date_id, month_id를 필터링, 아니면 전체를 불러옴
+
+    Args:
+        data_type:
+        date_id:
+        df:
+        month_id:
+
+    Returns:
+
+    """
+    func_name = get_funcname(stack_index=2)
+    fpath = str(Path(PathConfig.snapshots).joinpath(data_type))
+    if date_id or month_id:
+        filters = []
+        if date_id:
+            filters.append(("date_id", "=", date_id))
+        if month_id:
+            if isinstance(month_id, str):
+                month_id = int(month_id.replace("-", ""))
+            filters.append(("month_id", "=", month_id))
+    if filters:
+        df = pd.read_parquet(fpath, engine="pyarrow", filters=filters)
+    else:
+        df = pd.read_parquet(fpath, engine="pyarrow")
+
+    if len(df) == 0:
+        if data_type:
+            if month_id:
+                fpath = os.path.join(os.path.basename(fpath), str(month_id))
+            if date_id:
+                fpath = os.path.join(fpath, date_id)
+            error_msg = f"No data found for {fpath}"
+        logger.error(f"function_name: {func_name}\n{error_msg}")
+        asyncio.run(send_log(error_msg))
+        return pd.DataFrame()
+    return df
 
 
 def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
@@ -15,6 +63,7 @@ def _check_same_columns(df1: pd.DataFrame, df2: pd.DataFrame):
         raise ValueError(
             f"Columns are different.\n{list(df1_diff)} are not in new dataframe,\n{list(df2_diff)} are not in org dataframe"
         )
+
 
 def convert_trade_columns(
     dictionary: dict,
@@ -157,6 +206,7 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
 
     return _df
 
+
 def delete_latest_history(
     org: pd.DataFrame, this_month: str, last_month: str, date_column="date_id"
 ):
@@ -180,19 +230,23 @@ def delete_latest_history(
     _org = _org[~_org[date_column].str.contains(this_month)]
     return _org
 
+
 def process_sales_column(df):
     data = deepcopy(df)
     # 면적구분 파싱 ex) 84C -> 84
     pattern = r"\d+"
-    data['면적구분'] = data['면적타입'].apply(lambda x: re.match(pattern, x)[0])
+    data["면적구분"] = data["면적타입"].apply(lambda x: re.match(pattern, x)[0])
     # 단지 파싱 ex) 101동 -> 1단지
     pattern = r".*\d+.*"
-    data['단지'] = data['동'].apply(lambda x: re.match(pattern, x)[0][0] + "단지" if re.match(pattern, x) else None)
+    data["단지"] = data["동"].apply(
+        lambda x: re.match(pattern, x)[0][0] + "단지" if re.match(pattern, x) else None
+    )
     data["floor"] = data["층"].apply(lambda x: x.split("/")[0])
-    data['집주인'] = np.where(data['인증'] == 'OWNER', "집주인", None)
-    data['가격요약'] = data['가격'].apply(lambda x: f"{x/1e8:.1f}억")
+    data["집주인"] = np.where(data["인증"] == "OWNER", "집주인", None)
+    data["가격요약"] = data["가격"].apply(lambda x: f"{x/1e8:.1f}억")
 
     return data
+
 
 def filter_sales_column(df):
     prev_7day = (

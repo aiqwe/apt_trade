@@ -4,6 +4,7 @@ import asyncio
 from io import StringIO
 from datetime import datetime
 from typing import Literal
+import inspect
 
 import telegram
 import pandas as pd
@@ -12,6 +13,17 @@ from dotenv import load_dotenv
 from loguru import logger
 from .config import PathConfig
 from .metastore import Metastore
+
+
+def get_funcname(stack_index: int = None):
+    """전전 스택(호출한 함수)의 이름을 가져온다"""
+    if not stack_index:
+        stack_index = 1
+    try:
+        stack = inspect.stack()[stack_index]
+    except:  # noqa: E722
+        return "None"
+    return stack.function
 
 
 def load_env(key: str = None, fname=".env", start_path=None):
@@ -159,7 +171,12 @@ class BatchManager:
         asyncio.run(send_log(text=text, chat_id=chat_id, token=token))
 
     def __call__(
-        self, task_type: Literal["message", "photo", "execute"], func, *args, **kwargs
+        self,
+        task_type: Literal["message", "photo", "execute"],
+        func,
+        task_id=None,
+        *args,
+        **kwargs,
     ):
         if self.block:
             meta = Metastore()
@@ -187,9 +204,10 @@ class BatchManager:
                     if task_type == "execute":
                         self.execute(func, *args, **kwargs)
                 except Exception as e:
-                    logger.error(f"func:{func.__name__}:\n{repr(e)}")
+                    msg = f"{self.task_id}\n:{repr(e)}"
+                    logger.error(msg)
                     self.send_log(
-                        text=repr(f"func:{func.__name__}:\n{repr(e)}"),
+                        text=msg,
                         chat_id=None,
                         token=kwargs.get("token", None),
                     )
@@ -210,9 +228,10 @@ class BatchManager:
                 if task_type == "execute":
                     self.execute(func, *args, **kwargs)
             except Exception as e:
-                logger.error(f"func:{func.__name__}:\n{repr(e)}")
+                msg = f"{self.task_id}\n:{repr(e)}"
+                logger.error(msg)
                 self.send_log(
-                    text=repr(f"func:{func.__name__}:\n{repr(e)}"),
+                    text=msg,
                     chat_id=None,
                     token=kwargs.get("token", None),
                 )
@@ -228,7 +247,13 @@ def get_chat_id(token: str):
     return response
 
 
-async def send_log(text: str, chat_id: str = None, token: str = None):
+async def send_log(
+    text: str,
+    chat_id: str = None,
+    token: str = None,
+    func_name: str = None,
+    stack_index: int = None,
+):
     """telegram chat_id로 메세지 전송
     Args:
         text: 전송할 메세지
@@ -240,6 +265,9 @@ async def send_log(text: str, chat_id: str = None, token: str = None):
     if not chat_id:
         chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     bot = telegram.Bot(token=token)
+    if not func_name:
+        func_name = get_funcname(stack_index=stack_index)
+    text = f"{func_name}:\n" + text
     await bot.send_message(chat_id=chat_id, text=text)
 
 

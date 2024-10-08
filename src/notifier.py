@@ -1,16 +1,13 @@
 import os.path
-from pathlib import Path
 import pandas as pd
 from copy import deepcopy
 from jinja2 import Template
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import asyncio
 from typing import Literal
-from loguru import logger
 
 from utils import (
-    send_log,
+    prepare_dataframe,
     send_message,
     send_photo,
     load_env,
@@ -21,33 +18,14 @@ from utils import (
     SchemaConfig,
     TelegramTemplate,
 )
-import inspect
-
-
-def _prepare_dataframe(
-    data_type: Literal["trade", "bunyang", "sales"], date_id: str, month_id: str = None
-):
-    fpath = str(Path(PathConfig.snapshots).joinpath(data_type))
-    filters = [("date_id", "=", date_id)]
-    if month_id:
-        filters = [[("month_id", "=", month_id), ("date_id", "=", date_id)]]
-    df = pd.read_parquet(fpath, engine="pyarrow", filters=filters)
-
-    if len(df) == 0:
-        error_msg = f"No data found for {os.path.basename(fpath)}/{month_id}/{date_id}"
-        func_name = inspect.currentframe().f_code.co_name
-        logger.error(f"function_name: {func_name}\n{error_msg}")
-        asyncio.run(send_log(error_msg))
-        return pd.DataFrame()
-    return df
 
 
 def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     prev_date_id = (
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
-    trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
-    bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
+    trade = prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
+    bunyang = prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
     # 데이터가 없을 시 처리
     df = pd.concat([trade, bunyang])
     if len(df) == 0:
@@ -57,10 +35,10 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
         total = df["계약일"].count()
 
     if datetime.strptime(date_id, "%Y-%m-%d").day != 1:
-        last_trade = _prepare_dataframe(
+        last_trade = prepare_dataframe(
             data_type="trade", month_id=month, date_id=prev_date_id
         )
-        last_bunyang = _prepare_dataframe(
+        last_bunyang = prepare_dataframe(
             data_type="bunyang", month_id=month, date_id=prev_date_id
         )
         last_df = pd.concat([last_trade, last_bunyang])
@@ -96,11 +74,11 @@ def daily_aggregation(month: str, date_id: str, sgg_contains: list = None):
     return message
 
 
-def daily_specific_apt(
+def daily_new_trade(
     month: str, date_id: str, apt_contains: list = None, filter_new=True
 ):
-    trade = _prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
-    bunyang = _prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
+    trade = prepare_dataframe(data_type="trade", month_id=month, date_id=date_id)
+    bunyang = prepare_dataframe(data_type="bunyang", month_id=month, date_id=date_id)
     df = pd.concat([trade, bunyang])
     # 데이터가 없을 시 처리
     if len(df) == 0:
@@ -164,7 +142,7 @@ def sales_aggregation(date_id):
             res[col] = res[col].apply(lambda x: f"{x / 1e8:.2f}" + "억")
         return res
 
-    df = _prepare_dataframe(data_type="sales", date_id=date_id)
+    df = prepare_dataframe(data_type="sales", date_id=date_id)
     this = _agg(df, date_id)
 
     # 이건 현재 매물용
@@ -172,7 +150,7 @@ def sales_aggregation(date_id):
     this_data = this_data.to_dict(orient="records")
 
     # 전일과 비교
-    prev_df = _prepare_dataframe(data_type="sales", date_id=prev_date_id)
+    prev_df = prepare_dataframe(data_type="sales", date_id=prev_date_id)
     prev = _agg(prev_df, prev_date_id)
     merged = this.merge(prev, how="left", on="아파트명")
 
@@ -216,7 +194,6 @@ if __name__ == "__main__":
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     mode = "prod"
     block = False if mode == "test" else True
-    blcok = False
 
     sgg_contains = FilterConfig.sgg_contains
     apt_contains = FilterConfig.apt_contains
@@ -232,8 +209,8 @@ if __name__ == "__main__":
 
     # 신규 거래
     for month in [last_month, this_month]:
-        task_id = get_task_id(__file__, month, "daily_status")
-        msg = daily_specific_apt(
+        task_id = get_task_id(__file__, month, "daily_new_trade")
+        msg = daily_new_trade(
             month, date_id=date_id, apt_contains=apt_contains, filter_new=True
         )
         chat_id = test_chat_id if mode == "test" else detail_chat_id
@@ -242,12 +219,18 @@ if __name__ == "__main__":
         bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
 
     # 매물 집계
-    task_id = get_task_id(__file__, this_month, "sales_monthly")
+    task_id = get_task_id(__file__, this_month, "sales_aggregation")
     msg = sales_aggregation(date_id=date_id)
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
+    bm(
+        task_type="message",
+        task_id=task_id,
+        func=send_message,
+        text=msg,
+        chat_id=chat_id,
+    )
 
     # 매물 그래프 - 평균
     agg_type = "mean"
@@ -256,7 +239,13 @@ if __name__ == "__main__":
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+    bm(
+        task_type="photo",
+        task_id=task_id,
+        func=send_photo,
+        photo=photo,
+        chat_id=chat_id,
+    )
 
     # 매물 그래프 - 중앙
     agg_type = "median"
@@ -265,7 +254,13 @@ if __name__ == "__main__":
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+    bm(
+        task_type="photo",
+        task_id=task_id,
+        func=send_photo,
+        photo=photo,
+        chat_id=chat_id,
+    )
 
     # 매물 그래프 - 최저
     agg_type = "min"
@@ -274,7 +269,13 @@ if __name__ == "__main__":
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+    bm(
+        task_type="photo",
+        task_id=task_id,
+        func=send_photo,
+        photo=photo,
+        chat_id=chat_id,
+    )
 
     # 매물 그래프 - 매물 수
     agg_type = "count"
@@ -283,4 +284,10 @@ if __name__ == "__main__":
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+    bm(
+        task_type="photo",
+        task_id=task_id,
+        func=send_photo,
+        photo=photo,
+        chat_id=chat_id,
+    )
