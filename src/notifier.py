@@ -214,7 +214,7 @@ if __name__ == "__main__":
         "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
-    mode = "prod"
+    mode = "test"
     block = False if mode == "test" else True
 
     sgg_contains = FilterConfig.sgg_contains
