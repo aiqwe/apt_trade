@@ -275,3 +275,12 @@ if __name__ == "__main__":
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
     bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+
+    # 매물 그래프 - 매물 수
+    agg_type = "count"
+    task_id = get_task_id(__file__, f"sales_trend_{agg_type}")
+    photo = sales_trend(agg_type=agg_type)
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+    bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
