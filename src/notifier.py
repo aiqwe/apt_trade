@@ -214,7 +214,7 @@ if __name__ == "__main__":
         "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
-    mode = "test"
+    mode = "prod"
     block = False if mode == "test" else True
 
     sgg_contains = FilterConfig.sgg_contains
@@ -239,7 +239,6 @@ if __name__ == "__main__":
 
         bm = BatchManager(task_id=task_id, key=date_id, block=block)
         bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
-        break
 
     # 매물 집계
     task_id = get_task_id(__file__, this_month, "sales_monthly")

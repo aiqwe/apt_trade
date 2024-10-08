@@ -38,7 +38,6 @@ def _sub_task(lawd_cd, deal_ymd):
         pageNo=1,
         numOfRows=1,
     )
-    print(sentinel.text)
     soup = BeautifulSoup(sentinel.text, "xml")
     total_cnt = int(soup.totalCount.get_text())  # 전체 건수
     iteration = (total_cnt // 1000) + 1  # 1000 row마다 request할 때 iteration 수
@@ -132,7 +131,7 @@ if __name__ == "__main__":
         last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
 
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "test"
+    mode = "prod"
     block = False if mode == "test" else True
 
     bm = BatchManager(
