@@ -66,7 +66,10 @@ def sales_trend(
     fig, ax = plt.subplots()
     ax.set_title(f"아파트별 매물 추이({converted_agg_type})")
     ax.set_xlabel("날짜")
-    ax.set_ylabel("가격(억)")
+    if agg_type == "count":
+        ax.set_ylabel("갯수")
+    else:
+        ax.set_ylabel("가격(억)")
     plt.xticks(rotation=45)
     for apt_name in sorted_apt_names:
         panel = data[data["아파트명"] == apt_name]
