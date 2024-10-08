@@ -20,7 +20,12 @@ fm.findfont("NanumGothic")
 plt.rc("font", family=font_name)
 
 # agg_type 변환기
-agg_type_converter = {"average": "평균", "median": "중앙"}
+agg_type_converter = {
+    "mean": "평균",
+    "median": "중앙",
+    "min": "최저",
+    "count": "매물수",
+}
 
 
 def _sales_trend_prep(df, apt_names, agg_type):
@@ -47,7 +52,9 @@ def _sales_trend_prep(df, apt_names, agg_type):
     return trend, sorted_apt_names
 
 
-def sales_trend(date_id, apt_names, agg_type: Literal["average", "median"]):
+def sales_trend(
+    date_id, apt_names, agg_type: Literal["mean", "median", "min", "count"]
+):
     # Make Graph and save png files in PathConfig.graph
     df = pd.read_parquet(PathConfig.sales)
     data, sorted_apt_names = _sales_trend_prep(
@@ -86,7 +93,7 @@ if __name__ == "__main__":
         "더클래시",
         "올림픽파크포레온",
     ]
-    agg_type = "average"
+    agg_type = "mean"
     bm = BatchManager(
         task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
     )
@@ -99,6 +106,30 @@ if __name__ == "__main__":
     )
 
     agg_type = "median"
+    bm = BatchManager(
+        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
+    )
+    bm(
+        task_type="execute",
+        func=sales_trend,
+        date_id=date_id,
+        apt_names=apt_names,
+        agg_type=agg_type,
+    )
+
+    agg_type = "min"
+    bm = BatchManager(
+        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
+    )
+    bm(
+        task_type="execute",
+        func=sales_trend,
+        date_id=date_id,
+        apt_names=apt_names,
+        agg_type=agg_type,
+    )
+
+    agg_type = "count"
     bm = BatchManager(
         task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
     )

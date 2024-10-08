@@ -2,11 +2,11 @@ import os.path
 from pathlib import Path
 import pandas as pd
 from copy import deepcopy
-from typing import Literal
 from jinja2 import Template
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import asyncio
+from typing import Literal
 from loguru import logger
 
 from utils import (
@@ -193,8 +193,8 @@ def sales_aggregation(date_id):
     return message
 
 
-def sales_trend():
-    return os.path.join(PathConfig.graph, "sales_trend.png")
+def sales_trend(agg_type: Literal["mean", "median", "min", "count"]):
+    return os.path.join(PathConfig.graph, f"sales_trend_{agg_type}.png")
 
 
 if __name__ == "__main__":
@@ -216,6 +216,7 @@ if __name__ == "__main__":
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
     mode = "prod"
     block = False if mode == "test" else True
+    blcok = False
 
     sgg_contains = FilterConfig.sgg_contains
     apt_contains = FilterConfig.apt_contains
@@ -248,9 +249,28 @@ if __name__ == "__main__":
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
 
-    # 매물 그래프
-    task_id = get_task_id(__file__, "sales_trend")
-    photo = sales_trend()
+    # 매물 그래프 - 평균
+    agg_type = "mean"
+    task_id = get_task_id(__file__, f"sales_trend_{agg_type}")
+    photo = sales_trend(agg_type=agg_type)
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+    bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+
+    # 매물 그래프 - 중앙
+    agg_type = "median"
+    task_id = get_task_id(__file__, f"sales_trend_{agg_type}")
+    photo = sales_trend(agg_type=agg_type)
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+    bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    bm(task_type="photo", func=send_photo, photo=photo, chat_id=chat_id)
+
+    # 매물 그래프 - 최저
+    agg_type = "min"
+    task_id = get_task_id(__file__, f"sales_trend_{agg_type}")
+    photo = sales_trend(agg_type=agg_type)
     chat_id = test_chat_id if mode == "test" else monthly_chat_id
 
     bm = BatchManager(task_id=task_id, key=date_id, block=block)
