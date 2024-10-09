@@ -2,21 +2,26 @@ import pandas as pd
 from typing import Literal
 from utils import PathConfig, BatchManager, get_task_id
 from datetime import datetime, timedelta
+import shutil
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib import font_manager as fm
 from copy import deepcopy
-
 import os
 
 # Font 찾기
 font_list = fm.findSystemFonts(fontpaths=None, fontext="ttf")
-fontpath = [f for f in font_list if "NanumGothic.ttf" in f] or [
-    f for f in font_list if "NanumGothic.ttc" in f
-]
-fontpath = fontpath[0]
-print(fontpath)
-font_name = fm.FontProperties(fname=fontpath, size=10).get_name()
-fm.findfont("NanumGothic")
+font_path = [f for f in font_list if "NanumGothic.ttf" in f][0]
+font_file_name = os.path.basename(font_path)
+font_name = fm.FontProperties(fname=font_path, size=10).get_name()
+
+# System Font Path의 ttf 파일을 matplotlib의 font 설정파일로 복사
+config_path = os.path.dirname(mpl.matplotlib_fname())
+config_font_path = os.path.join(os.path.join(config_path, "fonts"), "ttf")
+shutil.copy(font_path, os.path.join(config_font_path, font_file_name))
+shutil.rmtree(mpl.get_cachedir())
+
+# Font Name 가져와서 추가
 plt.rc("font", family=font_name)
 
 # agg_type 변환기
@@ -28,13 +33,16 @@ agg_type_converter = {
 }
 
 
-def _sales_trend_prep(df, apt_names, agg_type):
+def _sales_trend_prep(df, apt_names, agg_type, date_id):
     data = deepcopy(df)
     data = pd.read_parquet(PathConfig.sales)
     data["price_range"] = data["가격"].apply(lambda x: int(x / 1e8))
     data = data[data["면적구분"] == "84"]
     data = data[
-        data["확인날짜"] >= (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        data["확인날짜"]
+        >= (datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=7)).strftime(
+            "%Y-%m-%d"
+        )
     ]
     data = data[data["아파트명"].isin(apt_names)]
 
@@ -58,7 +66,7 @@ def sales_trend(
     # Make Graph and save png files in PathConfig.graph
     df = pd.read_parquet(PathConfig.sales)
     data, sorted_apt_names = _sales_trend_prep(
-        df=df, apt_names=apt_names, agg_type=agg_type
+        df=df, apt_names=apt_names, agg_type=agg_type, date_id=date_id
     )
     converted_agg_type = agg_type_converter[agg_type]  # average -> 평균
 
@@ -86,7 +94,7 @@ def sales_trend(
 
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "test"
+    mode = "prod"
     block = False if mode == "test" else True
 
     apt_names = [

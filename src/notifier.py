@@ -8,7 +8,6 @@ from typing import Literal
 
 from utils import (
     prepare_dataframe,
-    send_message,
     send_photo,
     load_env,
     get_task_id,
@@ -198,39 +197,39 @@ if __name__ == "__main__":
     sgg_contains = FilterConfig.sgg_contains
     apt_contains = FilterConfig.apt_contains
 
-    # 월별 계약 현황
-    for month in [last_month, this_month]:
-        task_id = get_task_id(__file__, month, "monthly")
-        msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
-        chat_id = test_chat_id if mode == "test" else monthly_chat_id
-
-        bm = BatchManager(task_id=task_id, key=date_id, block=block)
-        bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
-
-    # 신규 거래
-    for month in [last_month, this_month]:
-        task_id = get_task_id(__file__, month, "daily_new_trade")
-        msg = daily_new_trade(
-            month, date_id=date_id, apt_contains=apt_contains, filter_new=True
-        )
-        chat_id = test_chat_id if mode == "test" else detail_chat_id
-
-        bm = BatchManager(task_id=task_id, key=date_id, block=block)
-        bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
-
-    # 매물 집계
-    task_id = get_task_id(__file__, this_month, "sales_aggregation")
-    msg = sales_aggregation(date_id=date_id)
-    chat_id = test_chat_id if mode == "test" else monthly_chat_id
-
-    bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    bm(
-        task_type="message",
-        task_id=task_id,
-        func=send_message,
-        text=msg,
-        chat_id=chat_id,
-    )
+    # # 월별 계약 현황
+    # for month in [last_month, this_month]:
+    #     task_id = get_task_id(__file__, month, "monthly")
+    #     msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
+    #     chat_id = test_chat_id if mode == "test" else monthly_chat_id
+    #
+    #     bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    #     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
+    #
+    # # 신규 거래
+    # for month in [last_month, this_month]:
+    #     task_id = get_task_id(__file__, month, "daily_new_trade")
+    #     msg = daily_new_trade(
+    #         month, date_id=date_id, apt_contains=apt_contains, filter_new=True
+    #     )
+    #     chat_id = test_chat_id if mode == "test" else detail_chat_id
+    #
+    #     bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    #     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
+    #
+    # # 매물 집계
+    # task_id = get_task_id(__file__, this_month, "sales_aggregation")
+    # msg = sales_aggregation(date_id=date_id)
+    # chat_id = test_chat_id if mode == "test" else monthly_chat_id
+    #
+    # bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    # bm(
+    #     task_type="message",
+    #     task_id=task_id,
+    #     func=send_message,
+    #     text=msg,
+    #     chat_id=chat_id,
+    # )
 
     # 매물 그래프 - 평균
     agg_type = "mean"
