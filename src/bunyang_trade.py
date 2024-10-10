@@ -3,7 +3,6 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 import pandas as pd
-import numpy as np
 from loguru import logger
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -21,6 +20,7 @@ from utils import (
     convert_trade_columns,
     process_trade_columns,
     generate_new_trade_columns,
+    prepare_dataframe,
 )
 
 
@@ -106,7 +106,7 @@ def main_task(month: int, date_id: str):
         include_columns=["month_id", "date_id"],
         sort=True,
     )
-    concat = concat.replace(" ", np.nan)
+    concat = concat.replace(" ", None)
 
     # 시군구코드 -> 시군구명으로 변경하기
     lawd_cd = get_lawd_cd()
@@ -119,16 +119,18 @@ def main_task(month: int, date_id: str):
     concat["시군구코드"] = concat["시군구코드"].apply(lambda x: converter[x])
     concat = process_trade_columns(concat)
     concat["건축년도"] = concat["건축년도"].fillna("미정")
-    concat = generate_new_trade_columns(concat)
+    exist = prepare_dataframe("bunyang", month_id=month)
+    concat = pd.concat([exist, concat])
+    df = generate_new_trade_columns(concat, date_id=date_id)
     logger.info("processing columns completed")
 
     # 스키마 일치시키기
-    concat = concat[list(SchemaConfig.trade.keys())]
-    concat = concat.astype(SchemaConfig.trade)
+    df = df[list(SchemaConfig.trade.keys())]
+    df = df.astype(SchemaConfig.trade)
 
     # Parquet로 Overwrite 저장
     path = PathConfig.bunyang
-    concat.to_parquet(
+    df.to_parquet(
         path=path,
         engine="pyarrow",
         partition_cols=["month_id", "date_id"],
@@ -146,7 +148,7 @@ if __name__ == "__main__":
         last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
 
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "prod"
+    mode = "test"
     block = False if mode == "test" else True
 
     bm = BatchManager(

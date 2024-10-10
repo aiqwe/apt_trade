@@ -147,6 +147,6 @@ class SchemaConfig:
         "법정동": "object",
         "거래구분": "object",
         "신규거래": "object",
-        "month_id": "object",
+        "month_id": "int32",
         "date_id": "object",
     }

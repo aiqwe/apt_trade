@@ -171,7 +171,6 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
     """
     if not date_id:
         date_id = df["date_id"].max()
-
     _df = deepcopy(df)
     logger.info(f"date_id will be processed on: {date_id}")
     prev_date_id = (
@@ -197,14 +196,14 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
         (_df["date_id"] == date_id)
         & (~_df["pk"].isin(_df[_df["date_id"] == prev_date_id]["pk"])),
         "신규",
-        np.nan,
+        None,
     )
     logger.info("updated '신규거래' columns")
     # seq / pk 제거
     _df = _df.drop(columns=["pk", "seq"], axis=0)
     logger.info("dropped seq, pk columns")
 
-    return _df
+    return _df[_df["date_id"] == date_id]
 
 
 def delete_latest_history(

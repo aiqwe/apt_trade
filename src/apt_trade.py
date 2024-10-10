@@ -3,7 +3,6 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 import pandas as pd
-import numpy as np
 from loguru import logger
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -21,6 +20,7 @@ from utils import (
     process_trade_columns,
     generate_new_trade_columns,
     SchemaConfig,
+    prepare_dataframe,
 )
 
 
@@ -102,17 +102,19 @@ def main_task(month: int, date_id: str):
         include_columns=["month_id", "date_id"],
         sort=True,
     )
-    concat = concat.replace(" ", np.nan)
+    concat = concat.replace(" ", None)
     concat = process_trade_columns(concat)
     concat["건축년도"] = concat["건축년도"].apply(lambda x: str(int(x)))
-    concat = generate_new_trade_columns(concat)
+    exist = prepare_dataframe("trade", month_id=month)
+    concat = pd.concat([exist, concat])
+    df = generate_new_trade_columns(concat, date_id=date_id)
     logger.info("processing columns completed")
     # 스키마 일치
-    concat = concat[list(SchemaConfig.trade.keys())]
-    concat = concat.astype(SchemaConfig.trade)
+    df = df[list(SchemaConfig.trade.keys())]
+    df = df.astype(SchemaConfig.trade)
     # Parquet로 Overwrite 저장
     path = PathConfig.trade
-    concat.to_parquet(
+    df.to_parquet(
         path=path,
         engine="pyarrow",
         partition_cols=["month_id", "date_id"],
