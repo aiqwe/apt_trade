@@ -104,7 +104,13 @@ def daily_new_trade(
         "거래유형",
     ]
     df = df[cols]
-    df = df[df["전용면적"].str.startswith("8")]  # 30평대만
+    df = df[
+        df["전용면적"]
+        .astype(str)
+        .str.split("(")
+        .apply(lambda x: x[-1])
+        .str.startswith("3")
+    ]  # 30평대만
     df = df.sort_values(["아파트명", "전용면적", "계약일", "층"])
     data = df[cols].to_dict(orient="records")
 
@@ -195,6 +201,8 @@ if __name__ == "__main__":
     args = parse()
     mode = args.mode.lower()
     block = args.nonblock
+    mode = "test"
+    block = False
 
     monthly_chat_id = load_env(
         "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathConfig.root
@@ -203,8 +211,6 @@ if __name__ == "__main__":
         "TELEGRAM_DETAIL_CHAT_ID", ".env", start_path=PathConfig.root
     )
     test_chat_id = load_env("TELEGRAM_TEST_CHAT_ID", ".env", start_path=PathConfig.root)
-    mode = "prod"
-    block = False if mode == "test" else True
 
     sgg_contains = FilterConfig.sgg_contains
     apt_contains = FilterConfig.apt_contains

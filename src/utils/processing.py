@@ -202,8 +202,8 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
     # seq / pk 제거
     _df = _df.drop(columns=["pk", "seq"], axis=0)
     logger.info("dropped seq, pk columns")
-
-    return _df[_df["date_id"] == date_id]
+    filtered = _df[_df["date_id"] == date_id]
+    return filtered
 
 
 def delete_latest_history(
