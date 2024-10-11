@@ -7,6 +7,7 @@ from loguru import logger
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
+from argparse import ArgumentParser
 
 from utils import (
     get_public_api_data,
@@ -139,6 +140,13 @@ def main_task(month: int, date_id: str):
     logger.info(f"Save the data in '{path}/month_id={month}/date_id={date_id}'")
 
 
+def parse():
+    parser = ArgumentParser()
+    parser.add_argument("--mode", default="prod", choices=["prod", "test"])
+    parser.add_argument("--nonblock", default=True, action="store_false")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
     this_month = datetime.now().strftime("%Y%m")
     last_month = (datetime.now() - relativedelta(months=1)).strftime("%Y%m")
@@ -148,8 +156,9 @@ if __name__ == "__main__":
         last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
 
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "test"
-    block = False if mode == "test" else True
+    args = parse()
+    mode = args.mode.lower()
+    block = args.nonblock
 
     bm = BatchManager(
         task_id=get_task_id(__file__, last_month), key=date_id, block=block

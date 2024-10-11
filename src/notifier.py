@@ -5,6 +5,7 @@ from jinja2 import Template
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Literal
+from argparse import ArgumentParser
 
 from utils import (
     prepare_dataframe,
@@ -175,6 +176,13 @@ def sales_trend(agg_type: Literal["mean", "median", "min", "count"]):
     return os.path.join(PathConfig.graph, f"sales_trend_{agg_type}.png")
 
 
+def parse():
+    parser = ArgumentParser()
+    parser.add_argument("--mode", default="prod", choices=["prod", "test"])
+    parser.add_argument("--nonblock", default=True, action="store_false")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
     this_month = int(datetime.now().strftime("%Y%m"))
     last_month = int((datetime.now() - relativedelta(months=1)).strftime("%Y%m"))
@@ -184,6 +192,9 @@ if __name__ == "__main__":
         last_month = int((datetime.now() - relativedelta(months=2)).strftime("%Y%m"))
 
     date_id = datetime.now().strftime("%Y-%m-%d")
+    args = parse()
+    mode = args.mode.lower()
+    block = args.nonblock
 
     monthly_chat_id = load_env(
         "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathConfig.root

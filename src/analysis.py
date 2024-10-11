@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib import font_manager as fm
 from copy import deepcopy
 import os
+from argparse import ArgumentParser
 
 # Font 찾기
 font_list = fm.findSystemFonts(fontpaths=None, fontext="ttf")
@@ -92,10 +93,18 @@ def sales_trend(
     plt.savefig(os.path.join(PathConfig.graph, f"sales_trend_{agg_type}.png"))
 
 
+def parse():
+    parser = ArgumentParser()
+    parser.add_argument("--mode", default="prod", choices=["prod", "test"])
+    parser.add_argument("--nonblock", default=True, action="store_false")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "prod"
-    block = False if mode == "test" else True
+    args = parse()
+    mode = args.mode.lower()
+    block = args.nonblock
 
     apt_names = [
         "헬리오시티",
