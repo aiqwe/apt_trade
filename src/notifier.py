@@ -201,8 +201,6 @@ if __name__ == "__main__":
     args = parse()
     mode = args.mode.lower()
     block = args.nonblock
-    mode = "test"
-    block = False
 
     monthly_chat_id = load_env(
         "TELEGRAM_MONTHLY_CHAT_ID", ".env", start_path=PathConfig.root
