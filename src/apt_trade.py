@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 import pandas as pd
 from loguru import logger
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm
 from argparse import ArgumentParser
@@ -106,7 +106,10 @@ def main_task(month: int, date_id: str):
     concat = concat.replace(" ", None)
     concat = process_trade_columns(concat)
     concat["건축년도"] = concat["건축년도"].apply(lambda x: str(int(x)))
-    exist = prepare_dataframe("trade", month_id=month)
+    prev_date_id = (
+        datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
+    ).strftime("%Y-%m-%d")
+    exist = prepare_dataframe("trade", month_id=month, date_id=prev_date_id)
     concat = pd.concat([exist, concat])
     df = generate_new_trade_columns(concat, date_id=date_id)
     logger.info("processing columns completed")

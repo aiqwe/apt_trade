@@ -151,7 +151,7 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     )
     logger.info("Completed converting '시군구코드' column.")
 
-    _df["신규거래"] = np.nan
+    _df["신규거래"] = None
     logger.info(
         "Completed generating temporary '신규거래' column with filling in 'np.nan'"
     )
@@ -159,7 +159,7 @@ def process_trade_columns(df: pd.DataFrame, date_id: str = None):
     return _df
 
 
-def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
+def generate_new_trade_columns(df: pd.DataFrame, date_id: str):
     """신규거래 데이터 생성
 
     Args:
@@ -169,8 +169,6 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
     Returns:
 
     """
-    if not date_id:
-        date_id = df["date_id"].max()
     _df = deepcopy(df)
     logger.info(f"date_id will be processed on: {date_id}")
     prev_date_id = (
@@ -188,22 +186,27 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str = None):
         + _df["아파트명"]
         + _df["시군구코드"]
         + _df["법정동"]
+        # + _df["법정동"]
+        # + _df["법정동"]
+        # + _df["법정동"]
+        # + _df["법정동"]
         + _df["seq"].astype(str).apply(lambda x: x.rjust(5, "0"))
     )
 
-    # 신규거래 만들기
-    _df["신규거래"] = np.where(
-        (_df["date_id"] == date_id)
-        & (~_df["pk"].isin(_df[_df["date_id"] == prev_date_id]["pk"])),
-        "신규",
-        None,
+    cur = _df[_df["date_id"] == date_id]
+    prev = _df[_df["date_id"] == prev_date_id]
+
+    merged = pd.merge(
+        left=cur, right=prev[["date_id", "pk"]], left_on="pk", right_on="pk", how="left"
     )
+
+    merged["신규거래"] = np.where(merged["date_id_y"].isna(), "신규", None)
     logger.info("updated '신규거래' columns")
     # seq / pk 제거
-    _df = _df.drop(columns=["pk", "seq"], axis=0)
+    merged = merged.drop(columns=["pk", "seq", "date_id_y"], axis=0)
+    merged = merged.rename(columns={"date_id_x": "date_id"})
     logger.info("dropped seq, pk columns")
-    filtered = _df[_df["date_id"] == date_id]
-    return filtered
+    return merged
 
 
 def delete_latest_history(
