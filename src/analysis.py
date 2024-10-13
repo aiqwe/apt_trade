@@ -75,7 +75,7 @@ def sales_trend(
         ax.set_ylabel("갯수")
     else:
         ax.set_ylabel("가격(억)")
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=90)
     for apt_name in sorted_apt_names:
         panel = data[data["아파트명"] == apt_name]
         ax.plot(panel["date_id"], panel[converted_agg_type])
