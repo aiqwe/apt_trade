@@ -169,3 +169,5 @@ notebook.ipynb
 cron.log
 .DS_Store
 **/.DS_Store
+batch.sh
+**/batch.sh
