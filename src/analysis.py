@@ -70,8 +70,6 @@ def sales_trend(
         df=df, apt_names=apt_names, agg_type=agg_type, date_id=date_id
     )
     converted_agg_type = agg_type_converter[agg_type]  # average -> 평균
-
-    plt.rcParams["font.family"] = "Nanum Gothic"
     fig, ax = plt.subplots()
     ax.set_title(f"아파트별 매물 추이({converted_agg_type})")
     ax.set_xlabel("날짜")
