@@ -19,9 +19,8 @@ font_name = fm.FontProperties(fname=font_path, size=10).get_name()
 # System Font Path의 ttf 파일을 matplotlib의 font 설정파일로 복사
 config_path = os.path.dirname(mpl.matplotlib_fname())
 config_font_path = os.path.join(os.path.join(config_path, "fonts"), "ttf")
-if not os.path.exists(config_font_path):
-    shutil.copy(font_path, os.path.join(config_font_path, font_file_name))
-    shutil.rmtree(mpl.get_cachedir())
+shutil.rmtree(mpl.get_cachedir())
+shutil.copy(font_path, os.path.join(config_font_path, font_file_name))
 
 # Font Name 가져와서 추가
 plt.rc("font", family=font_name)
