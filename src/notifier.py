@@ -129,7 +129,7 @@ def sales_aggregation(date_id):
     def _agg(df, date_id):
         data = deepcopy(df)
         day_filter = (
-            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=7)
+            datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=28)
         ).strftime("%Y-%m-%d")
         data = data[data["확인날짜"] >= day_filter]
         data = data[data["면적구분"] == "84"]

@@ -7,6 +7,7 @@ from tqdm import tqdm
 import json
 from bs4 import BeautifulSoup
 from functools import partial
+from argparse import ArgumentParser
 
 from utils import (
     get_naver_sales_api_data,
@@ -65,9 +66,6 @@ def _sub_task(apt_name, sales_name):
                 "가격변화": data[idx]["representativeArticleInfo"]["priceInfo"][
                     "priceChangeStatus"
                 ],
-                "가격히스토리": data[idx]["representativeArticleInfo"]["priceInfo"][
-                    "priceChangeHistories"
-                ],
             }
             rows.append(row)
         if page_idx == 0:
@@ -123,11 +121,19 @@ def main_task(apt_names: list = None, date_id=None, sales_name=None):
     logger.info(f"Save the data in '{path}/date_id={date_id}'")
 
 
+def parse():
+    parser = ArgumentParser()
+    parser.add_argument("--mode", default="prod", choices=["prod", "test"])
+    parser.add_argument("--nonblock", default=True, action="store_false")
+    return parser.parse_args()
+
+
 # TODO: history 추가
 if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
-    mode = "test"
-    block = False if mode == "test" else True
+    args = parse()
+    mode = args.mode.lower()
+    block = args.nonblock
 
     bm = BatchManager(task_id=get_task_id(__file__), key=date_id, block=block)
 

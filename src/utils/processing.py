@@ -246,6 +246,7 @@ def process_sales_column(df):
     data["floor"] = data["층"].apply(lambda x: x.split("/")[0])
     data["집주인"] = np.where(data["인증"] == "OWNER", "집주인", None)
     data["가격요약"] = data["가격"].apply(lambda x: f"{x/1e8:.1f}억")
+    data = data.drop_duplicates()
 
     return data
 

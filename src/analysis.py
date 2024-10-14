@@ -39,10 +39,14 @@ def _sales_trend_prep(df, apt_names, agg_type, date_id):
     data = deepcopy(df)
     data["price_range"] = data["가격"].apply(lambda x: int(x / 1e8))
     data = data[data["면적구분"] == "84"]
-    data['date_id'] = data['date_id'].astype(str)
-    data['이전7일'] = data['date_id'].apply(lambda x: datetime.strptime(x, "%Y-%m-%d") - timedelta(days=7)).astype(str)
-    data['유효매물'] = np.where(data['확인날짜'] >= data['이전7일'], True, False)
-    data = data[data['유효매물']]
+    data["date_id"] = data["date_id"].astype(str)
+    data["기준확인일"] = (
+        data["date_id"]
+        .apply(lambda x: datetime.strptime(x, "%Y-%m-%d") - timedelta(days=28))
+        .astype(str)
+    )
+    data["유효매물"] = np.where(data["확인날짜"] >= data["기준확인일"], True, False)
+    data = data[data["유효매물"]]
     data = data[data["아파트명"].isin(apt_names)]
 
     trend = (
