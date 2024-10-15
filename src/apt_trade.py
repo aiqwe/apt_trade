@@ -146,9 +146,7 @@ if __name__ == "__main__":
     date_id = datetime.now().strftime("%Y-%m-%d")
     args = parse()
     mode = args.mode.lower()
-    mode = "test"
     block = args.nonblock
-    block = False
 
     bm = BatchManager(
         task_id=get_task_id(__file__, this_month), key=date_id, block=block

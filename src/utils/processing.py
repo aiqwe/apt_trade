@@ -175,6 +175,7 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str):
         datetime.strptime(date_id, "%Y-%m-%d") - timedelta(days=1)
     ).strftime("%Y-%m-%d")
     logger.info("generating seq, pk columns")
+    _df = _df.sort_values(["거래구분", "아파트명", "시군구코드", "법정동", "계약일", "전용면적", "거래금액", "층", "거래유형", "거래구분", "date_id"])
     _df["seq"] = (
         _df.groupby(
             ["거래구분", "아파트명", "시군구코드", "법정동", "date_id"]
@@ -186,13 +187,8 @@ def generate_new_trade_columns(df: pd.DataFrame, date_id: str):
         + _df["아파트명"]
         + _df["시군구코드"]
         + _df["법정동"]
-        # + _df["법정동"]
-        # + _df["법정동"]
-        # + _df["법정동"]
-        # + _df["법정동"]
         + _df["seq"].astype(str).apply(lambda x: x.rjust(5, "0"))
     )
-
     cur = _df[_df["date_id"] == date_id]
     prev = _df[_df["date_id"] == prev_date_id]
 
