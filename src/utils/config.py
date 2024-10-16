@@ -22,6 +22,7 @@ class PathConfig:
         "bunyang"
     )  # apt_trade/src/data/snpashots/bunyang
     sales: str = Path(snapshots).joinpath("sales")  # apt_trade/src/data/snpashots/sales
+    rent: str = Path(snapshots).joinpath("rent")  # apt_trade/src/data/snpashots/rent
     history: str = str(Path(data).joinpath("history"))  # apt_trade/src/data/history
     metastore: str = str(Path(src).joinpath("metastore"))  # apt_trade/src/metastore
     graph: str = str(Path(data).joinpath("graph"))  # apt_trade/src/metastore
@@ -124,6 +125,7 @@ class FilterConfig:
     }
 
     sales_code: dict = {"매매": "A1", "전세": "B1", "월세": "B2", "단기임대": "B3"}
+    price_code: dict = {"매매": "dealPrice", "전세": "warrantyPrice", "월세": "rentPrice"}
 
 
 class SchemaConfig:

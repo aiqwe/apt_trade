@@ -64,10 +64,15 @@ def _sales_trend_prep(df, apt_names, agg_type, date_id):
 
 
 def sales_trend(
-    date_id, apt_names, agg_type: Literal["mean", "median", "min", "count"]
+    date_id, apt_names, agg_type: Literal["mean", "median", "min", "count"], sales_name: Literal['sales', 'rent']
 ):
     # Make Graph and save png files in PathConfig.graph
-    df = pd.read_parquet(PathConfig.sales)
+    sales_map = {
+        'sales': PathConfig.sales,
+        'rent': PathConfig.rent
+    }
+
+    df = pd.read_parquet(sales_map[sales_name])
     data, sorted_apt_names = _sales_trend_prep(
         df=df, apt_names=apt_names, agg_type=agg_type, date_id=date_id
     )
@@ -82,7 +87,7 @@ def sales_trend(
     plt.xticks(rotation=90)
     for apt_name in sorted_apt_names:
         panel = data[data["아파트명"] == apt_name]
-        ax.plot(panel["date_id"], panel[converted_agg_type])
+        ax.plot(panel["date_id"], panel[converted_agg_type], marker="o")
 
     ax.grid()
     ax.legend(sorted_apt_names)
@@ -90,7 +95,7 @@ def sales_trend(
     graph_path = PathConfig.graph
     if not os.path.exists(graph_path):
         os.makedirs(graph_path, exist_ok=True)
-    plt.savefig(os.path.join(PathConfig.graph, f"sales_trend_{agg_type}.png"))
+    plt.savefig(os.path.join(PathConfig.graph, f"{sales_name}_trend_{agg_type}.png"))
 
 
 def parse():
@@ -113,50 +118,19 @@ if __name__ == "__main__":
         "더클래시",
         "올림픽파크포레온",
     ]
-    agg_type = "mean"
-    bm = BatchManager(
-        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
-    )
-    bm(
-        task_type="execute",
-        func=sales_trend,
-        date_id=date_id,
-        apt_names=apt_names,
-        agg_type=agg_type,
-    )
 
-    agg_type = "median"
-    bm = BatchManager(
-        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
-    )
-    bm(
-        task_type="execute",
-        func=sales_trend,
-        date_id=date_id,
-        apt_names=apt_names,
-        agg_type=agg_type,
-    )
-
-    agg_type = "min"
-    bm = BatchManager(
-        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
-    )
-    bm(
-        task_type="execute",
-        func=sales_trend,
-        date_id=date_id,
-        apt_names=apt_names,
-        agg_type=agg_type,
-    )
-
-    agg_type = "count"
-    bm = BatchManager(
-        task_id=get_task_id(__file__, date_id, agg_type), key=date_id, block=block
-    )
-    bm(
-        task_type="execute",
-        func=sales_trend,
-        date_id=date_id,
-        apt_names=apt_names,
-        agg_type=agg_type,
-    )
+    sales_types = ['sales', 'rent']
+    agg_types = ['mean', 'median', 'min', 'count']
+    for sales_type in sales_types:
+        for agg_type in agg_types:
+            bm = BatchManager(
+                task_id=get_task_id(__file__, date_id, f"{sales_type}_{agg_type}"), key=date_id, block=block
+            )
+            bm(
+                task_type="execute",
+                func=sales_trend,
+                date_id=date_id,
+                apt_names=apt_names,
+                agg_type=agg_type,
+                sales_name=sales_type
+            )
