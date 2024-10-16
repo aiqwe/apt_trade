@@ -71,6 +71,10 @@ def sales_trend(
         'sales': PathConfig.sales,
         'rent': PathConfig.rent
     }
+    sales_ko_map = {
+        'sales': '매매',
+        'rent': '전세'
+    }
 
     df = pd.read_parquet(sales_map[sales_name])
     data, sorted_apt_names = _sales_trend_prep(
@@ -78,7 +82,7 @@ def sales_trend(
     )
     converted_agg_type = agg_type_converter[agg_type]  # average -> 평균
     fig, ax = plt.subplots()
-    ax.set_title(f"아파트별 매물 추이({converted_agg_type})")
+    ax.set_title(f"아파트별 {sales_ko_map[sales_name]} 매물 추이({converted_agg_type})")
     ax.set_xlabel("날짜")
     if agg_type == "count":
         ax.set_ylabel("갯수")
@@ -87,7 +91,7 @@ def sales_trend(
     plt.xticks(rotation=90)
     for apt_name in sorted_apt_names:
         panel = data[data["아파트명"] == apt_name]
-        ax.plot(panel["date_id"], panel[converted_agg_type], marker="o")
+        ax.plot(panel["date_id"], panel[converted_agg_type], marker="o", alpha=0.5)
 
     ax.grid()
     ax.legend(sorted_apt_names)
