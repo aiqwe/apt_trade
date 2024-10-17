@@ -178,7 +178,10 @@ def sales_aggregation(date_id):
     return message
 
 
-def sales_trend(agg_type: Literal["mean", "median", "min", "count"], sales_type: Literal['sales', 'rent']):
+def sales_trend(
+    agg_type: Literal["mean", "median", "min", "count"],
+    sales_type: Literal["sales", "rent"],
+):
     return os.path.join(PathConfig.graph, f"{sales_type}_trend_{agg_type}.png")
 
 
@@ -212,52 +215,54 @@ if __name__ == "__main__":
 
     sgg_contains = FilterConfig.sgg_contains
     apt_contains = FilterConfig.apt_contains
-    #
-    # # 월별 계약 현황
-    # for month in [last_month, this_month]:
-    #     task_id = get_task_id(__file__, month, "monthly")
-    #     msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
-    #     chat_id = test_chat_id if mode == "test" else monthly_chat_id
-    #
-    #     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    #     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
-    #
-    # # 신규 거래
-    # for month in [last_month, this_month]:
-    #     task_id = get_task_id(__file__, month, "daily_new_trade")
-    #     msg = daily_new_trade(
-    #         month, date_id=date_id, apt_contains=apt_contains, filter_new=True
-    #     )
-    #     chat_id = test_chat_id if mode == "test" else detail_chat_id
-    #
-    #     bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    #     bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
-    #
-    # # 매물 집계
-    # task_id = get_task_id(__file__, this_month, "sales_aggregation")
-    # msg = sales_aggregation(date_id=date_id)
-    # chat_id = test_chat_id if mode == "test" else monthly_chat_id
-    #
-    # bm = BatchManager(task_id=task_id, key=date_id, block=block)
-    # bm(
-    #     task_type="message",
-    #     task_id=task_id,
-    #     func=send_message,
-    #     text=msg,
-    #     chat_id=chat_id,
-    # )
+
+    # 월별 계약 현황
+    for month in [last_month, this_month]:
+        task_id = get_task_id(__file__, month, "monthly")
+        msg = daily_aggregation(month, date_id=date_id, sgg_contains=sgg_contains)
+        chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+        bm = BatchManager(task_id=task_id, key=date_id, block=block)
+        bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
+
+    # 신규 거래
+    for month in [last_month, this_month]:
+        task_id = get_task_id(__file__, month, "daily_new_trade")
+        msg = daily_new_trade(
+            month, date_id=date_id, apt_contains=apt_contains, filter_new=True
+        )
+        chat_id = test_chat_id if mode == "test" else detail_chat_id
+
+        bm = BatchManager(task_id=task_id, key=date_id, block=block)
+        bm(task_type="message", func=send_message, text=msg, chat_id=chat_id)
+
+    # 매물 집계
+    task_id = get_task_id(__file__, this_month, "sales_aggregation")
+    msg = sales_aggregation(date_id=date_id)
+    chat_id = test_chat_id if mode == "test" else monthly_chat_id
+
+    bm = BatchManager(task_id=task_id, key=date_id, block=block)
+    bm(
+        task_type="message",
+        task_id=task_id,
+        func=send_message,
+        text=msg,
+        chat_id=chat_id,
+    )
 
     # 매물 그래프
-    sales_types = ['sales', 'rent']
-    agg_types = ['mean', 'median', 'min', 'count']
+    sales_types = ["sales", "rent"]
+    agg_types = ["mean", "median", "min", "count"]
     for sales_type in sales_types:
         for agg_type in agg_types:
             bm = BatchManager(
-                task_id=get_task_id(__file__, date_id, f"{sales_type}_{agg_type}"), key=date_id, block=block
+                task_id=get_task_id(__file__, date_id, f"{sales_type}_{agg_type}"),
+                key=date_id,
+                block=block,
             )
             bm(
                 task_type="photo",
                 func=send_photo,
                 photo=sales_trend(sales_type=sales_type, agg_type=agg_type),
-                chat_id=test_chat_id if mode == 'test' else monthly_chat_id,
+                chat_id=test_chat_id if mode == "test" else monthly_chat_id,
             )
