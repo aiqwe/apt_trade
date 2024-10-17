@@ -5,6 +5,7 @@ from io import StringIO
 from datetime import datetime
 from typing import Literal
 import inspect
+import platform
 
 import telegram
 import pandas as pd
@@ -267,7 +268,7 @@ async def send_log(
     bot = telegram.Bot(token=token)
     if not func_name:
         func_name = get_funcname(stack_index=stack_index)
-    text = f"{func_name}:\n" + text
+    text = f"{platform.uname().node}:\n{func_name}:\n" + text
     await bot.send_message(chat_id=chat_id, text=text)
 
 
