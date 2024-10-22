@@ -94,7 +94,7 @@ def sales_trend(
         ax.plot(panel["date_id"], panel[converted_agg_type], marker="o", alpha=0.5)
 
     ax.grid()
-    ax.legend(sorted_apt_names)
+    ax.legend(sorted_apt_names, framealpha=0.3, loc="right")
 
     graph_path = PathConfig.graph
     if not os.path.exists(graph_path):
