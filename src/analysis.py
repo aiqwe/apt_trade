@@ -64,17 +64,14 @@ def _sales_trend_prep(df, apt_names, agg_type, date_id):
 
 
 def sales_trend(
-    date_id, apt_names, agg_type: Literal["mean", "median", "min", "count"], sales_name: Literal['sales', 'rent']
+    date_id,
+    apt_names,
+    agg_type: Literal["mean", "median", "min", "count"],
+    sales_name: Literal["sales", "rent"],
 ):
     # Make Graph and save png files in PathConfig.graph
-    sales_map = {
-        'sales': PathConfig.sales,
-        'rent': PathConfig.rent
-    }
-    sales_ko_map = {
-        'sales': '매매',
-        'rent': '전세'
-    }
+    sales_map = {"sales": PathConfig.sales, "rent": PathConfig.rent}
+    sales_ko_map = {"sales": "매매", "rent": "전세"}
 
     df = pd.read_parquet(sales_map[sales_name])
     data, sorted_apt_names = _sales_trend_prep(
@@ -123,12 +120,14 @@ if __name__ == "__main__":
         "올림픽파크포레온",
     ]
 
-    sales_types = ['sales', 'rent']
-    agg_types = ['mean', 'median', 'min', 'count']
+    sales_types = ["sales", "rent"]
+    agg_types = ["mean", "median", "min", "count"]
     for sales_type in sales_types:
         for agg_type in agg_types:
             bm = BatchManager(
-                task_id=get_task_id(__file__, date_id, f"{sales_type}_{agg_type}"), key=date_id, block=block
+                task_id=get_task_id(__file__, date_id, f"{sales_type}_{agg_type}"),
+                key=date_id,
+                block=block,
             )
             bm(
                 task_type="execute",
@@ -136,5 +135,5 @@ if __name__ == "__main__":
                 date_id=date_id,
                 apt_names=apt_names,
                 agg_type=agg_type,
-                sales_name=sales_type
+                sales_name=sales_type,
             )
