@@ -131,6 +131,9 @@ def parse():
     parser = ArgumentParser()
     parser.add_argument("--mode", default="prod", choices=["prod", "test"])
     parser.add_argument("--nonblock", default=True, action="store_false")
+    parser.add_argument(
+        "--date_id", default=datetime.now().strftime("%Y-%m-%d"), action="store"
+    )
     return parser.parse_args()
 
 
@@ -143,8 +146,8 @@ if __name__ == "__main__":
         this_month = (datetime.now() - relativedelta(months=1)).strftime("%Y%m")
         last_month = (datetime.now() - relativedelta(months=2)).strftime("%Y%m")
 
-    date_id = datetime.now().strftime("%Y-%m-%d")
     args = parse()
+    date_id = args.date_id
     mode = args.mode.lower()
     block = args.nonblock
 

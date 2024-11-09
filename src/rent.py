@@ -124,13 +124,16 @@ def parse():
     parser = ArgumentParser()
     parser.add_argument("--mode", default="prod", choices=["prod", "test"])
     parser.add_argument("--nonblock", default=True, action="store_false")
+    parser.add_argument(
+        "--date_id", default=datetime.now().strftime("%Y-%m-%d"), action="store"
+    )
     return parser.parse_args()
 
 
 # TODO: history 추가
 if __name__ == "__main__":
-    date_id = datetime.now().strftime("%Y-%m-%d")
     args = parse()
+    date_id = args.date_id
     mode = args.mode.lower()
     block = args.nonblock
 

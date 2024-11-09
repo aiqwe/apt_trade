@@ -103,14 +103,17 @@ def parse():
     parser = ArgumentParser()
     parser.add_argument("--mode", default="prod", choices=["prod", "test"])
     parser.add_argument("--nonblock", default=True, action="store_false")
+    parser.add_argument(
+        "--date_id", default=datetime.now().strftime("%Y-%m-%d"), action="store"
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    date_id = datetime.now().strftime("%Y-%m-%d")
     args = parse()
     mode = args.mode.lower()
     block = args.nonblock
+    date_id = args.date_id
 
     apt_names = [
         "헬리오시티",
